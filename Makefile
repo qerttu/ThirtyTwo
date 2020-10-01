@@ -2,7 +2,7 @@ BUILDDIR = build
 
 TOOLS = tools
 
-SOURCES += src/app.c
+SOURCES += src/app.c src/surface.c src/sequence.c src/data.c
 
 INCLUDES += -Iinclude -I
 
