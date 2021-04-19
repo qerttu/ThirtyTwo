@@ -11,6 +11,7 @@ u8 setupButtonPressed = 0;
 u8 tempoSelect = 0;
 u8 sysexMidiPort = USBSTANDALONE;
 
+//first commit
 
 s8 indexOf(u8 element, const u8 array[], u8 arraysize) {
   for (u8 i = 0; i < arraysize; i++) {
