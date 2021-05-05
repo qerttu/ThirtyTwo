@@ -154,13 +154,31 @@ void drawSetupMode() {
 
   switch (setupPage) {
   case MUTE:
-    for (u8 i = 0; i < TRACK_COUNT; i++) {
-      if (trackMute & (1 << i)) {
-        hal_plot_led(TYPEPAD, 81 + i - 18 * (i / 8), MUTE_COLOR_R >> 3, MUTE_COLOR_G >> 3, MUTE_COLOR_B >> 3);
+
+	//MK: changed to match the channel color
+	for (u8 i = 0; i < TRACK_COUNT; i++) {
+	  if (trackMute[scene] & (1 << i)) {
+		  hal_plot_led(TYPEPAD, 81 + i - 18 * (i / 8), CHANNEL_COLORS[channel[i]][0] >> 3, CHANNEL_COLORS[channel[i]][1] >> 3,
+					   CHANNEL_COLORS[channel[i]][2] >> 3);
+	  } else {
+		  hal_plot_led(TYPEPAD, 81 + i - 18 * (i / 8), CHANNEL_COLORS[channel[i]][0], CHANNEL_COLORS[channel[i]][1],
+							   CHANNEL_COLORS[channel[i]][2]);
+	  }
+	}
+
+    //MK: scene buttons
+    for (u8 i = 0; i < SCENE_COUNT; i++) {
+      if (i==scene) {
+        hal_plot_led(TYPEPAD, 31 + i, WHITE_KEY_COLOR_R,
+                                      WHITE_KEY_COLOR_G,
+                                      WHITE_KEY_COLOR_B);
       } else {
-        hal_plot_led(TYPEPAD, 81 + i - 18 * (i / 8), MUTE_COLOR_R, MUTE_COLOR_G, MUTE_COLOR_B);
+        hal_plot_led(TYPEPAD, 31 + i, WHITE_KEY_COLOR_R >> 3,
+                                      WHITE_KEY_COLOR_G >> 3,
+                                      WHITE_KEY_COLOR_B >> 3);
       }
     }
+
     break;
 
   case REPEAT:
@@ -521,6 +539,13 @@ void onSetupGridTouch(u8 index, u8 value) {
       updateTrackMute(63 + index - 18 * (index / 10));
       drawSetupMode();
     }
+
+    //MK: scene buttons
+    if (value && index >= 31 && index <= 36) {
+    	scene = index - 31;
+    	drawSetupMode();
+    }
+
     break;
 
   case REPEAT:

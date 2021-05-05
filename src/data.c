@@ -16,12 +16,14 @@ u32 parseSysexU32(u8* data) {
 }
 
 void formatGlobalSettings(u8 *data) {
-  formatSysexU32(trackMute, data);
+  //MK: to-do--> support for all scenes
+  formatSysexU32(trackMute[0], data);
   formatSysexU32(trackRepeat, data + SYSEX_U32_SIZE);
 }
 
 void parseGlobalSettings(u8 *data) {
-  trackMute = parseSysexU32(data);
+  //MK: to-do--> support for all scenes
+  trackMute[0] = parseSysexU32(data);
   trackRepeat = parseSysexU32(data + SYSEX_U32_SIZE);
 }
 

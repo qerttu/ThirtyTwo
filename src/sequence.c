@@ -10,6 +10,7 @@ u8 trackSelectEnd;
 u32 clearTrackArm;
 SETUP_PAGE setupPage;
 u8 track;
+u8 scene;
 u32 stepRepeat;
 s8 repeatStart;
 u8 repeatLength;
@@ -19,7 +20,7 @@ s8 newStepSize[TRACK_COUNT];
 u8 clockDiv;
 s8 repeatPlayHeads[TRACK_COUNT];
 
-u32 trackMute;
+u32 trackMute[SCENE_COUNT];
 u32 trackRepeat;
 u8 clockOut;
 u8 tempo;
@@ -140,11 +141,12 @@ void updateRepeat() {
   }
 }
 
+//MK: modified for scenes
 void updateTrackMute(u8 trk) {
-  if (trackMute & (1 << trk)) {
-    trackMute &= ~(1 << trk);
+  if (trackMute[scene] & (1 << trk)) {
+    trackMute[scene] &= ~(1 << trk);
   } else {
-    trackMute |= 1 << trk;
+    trackMute[scene] |= 1 << trk;
     if (seqPlay) {
       stopPlayedNote(trk);
     }
@@ -289,7 +291,8 @@ void onMidiReceive(u8 port, u8 status, u8 d1, u8 d2) {
           }
 
           MIDI_NOTE note = notes[i][newPlayHead];
-          if (!(trackMute & (1 << i))) {
+          //MK: modified for scenes
+          if (!(trackMute[scene] & (1 << i))) {
             if (note.velocity && (prevGate != GATE_TIE || note.value != currentNotes[i].value)) {
               hal_send_midi(midiPort[i], NOTEON + channel[i], note.value, note.velocity);
             }
@@ -319,13 +322,15 @@ void onMidiReceive(u8 port, u8 status, u8 d1, u8 d2) {
     }
   }
 
-  if (clockEvent) {
+  //MK: pass thru also other stuff than clock events
+
+  //if (clockEvent) {
     for (u8 i = 0; i < 3; i++) {
       if (clockOut & (1 << i)) {
         hal_send_midi(i, status, d1, d2);
       }
     }
-  }
+  //}
 }
 
 void handleInternalClock() {
@@ -362,11 +367,17 @@ void initSequence() {
   clearTrackArm = 0;
   setupPage = EDIT;
   track = 0;
+  scene = 0;
   stepRepeat = 0;
   repeatStart = -1;
   repeatLength = 0;
   clockDiv = 0;
-  trackMute = 0;
+
+  //MK: init trackmutes for all scenes
+  for (u8 i=0; i<SCENE_COUNT;i++){
+	  trackMute[i] = 0;
+  }
+
   trackRepeat = 0;
   clockOut = 1;
   tempo = 19; // index for 20ms

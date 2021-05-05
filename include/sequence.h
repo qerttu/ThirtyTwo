@@ -6,6 +6,9 @@
 #define TRACK_COUNT 32
 #define MAX_SEQ_LENGTH 32
 
+//MK: scene count
+#define SCENE_COUNT 6
+
 #define GATE_FULL 6
 #define GATE_TIE 7
 
@@ -45,11 +48,15 @@ extern u8 trackSelectEnd;
 extern u32 clearTrackArm;
 extern SETUP_PAGE setupPage;
 extern u8 track;
+
+//MK: added scene for mutes
+extern u8 scene;
 extern u32 stepRepeat;
 extern s8 repeatStart;
 extern u8 repeatLength;
 
-extern u32 trackMute;
+//MK: trackmutes for scenes
+extern u32 trackMute[SCENE_COUNT];
 extern u32 trackRepeat;
 extern u8 clockOut;
 extern u8 tempo;
