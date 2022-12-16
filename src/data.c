@@ -15,6 +15,11 @@ u32 parseSysexU32(u8* data) {
   return 0xFFFFFFFF & (data[0] << 25 | data[1] << 18 | data[2] << 11 | data[3] << 4 | data[4]);
 }
 
+//MK: function for formating mute data
+void formatMuteData(u8 *data, u8 mt) {
+	  formatSysexU32(trackMute[mt], data);
+}
+
 void formatGlobalSettings(u8 *data) {
   //MK: to-do--> support for all scenes
   formatSysexU32(trackMute[0], data);
@@ -23,8 +28,13 @@ void formatGlobalSettings(u8 *data) {
 
 void parseGlobalSettings(u8 *data) {
   //MK: to-do--> support for all scenes
-  trackMute[0] = parseSysexU32(data);
+  //trackMute[0] = parseSysexU32(data);
   trackRepeat = parseSysexU32(data + SYSEX_U32_SIZE);
+}
+
+//MK: function to parse mute settings scene
+void parseMuteSettings(u8 mt, u8 *data) {
+	  trackMute[mt] = parseSysexU32(data);
 }
 
 void formatTrackSettings(u8 tr, u8 *data) {
@@ -57,7 +67,15 @@ u8 formatTrackSequence(u8 tr, u8 *data) {
       data[SYSEX_U32_SIZE + size] = note.value;
       data[SYSEX_U32_SIZE + size + 1] = note.velocity;
       data[SYSEX_U32_SIZE + size + 2] = note.gate;
-      size += 3;
+
+      //MK: added offset to export
+      if (!note.offset) {
+      	  note.offset = GATE_TIE;
+      }
+      data[SYSEX_U32_SIZE + size + 3] = note.offset;
+
+      // increase the size by one to allow offset
+      size += 4;
     }
   }
   formatSysexU32(steps, data);
@@ -68,12 +86,17 @@ void parseTrackSequence(u8 tr, u8 *data) {
   u32 steps = parseSysexU32(data);
   u8 index = 0;
   for (u8 i = 0; i < MAX_SEQ_LENGTH; i++) {
-    MIDI_NOTE note = (MIDI_NOTE){.value = 0, .velocity = 0, .gate = GATE_FULL};
+    MIDI_NOTE note = (MIDI_NOTE){.value = 0, .velocity = 0, .gate = GATE_FULL, .offset = GATE_TIE};
     if (steps & (1 << i)) {
       note.value = data[SYSEX_U32_SIZE + index];
       note.velocity = data[SYSEX_U32_SIZE + index + 1];
       note.gate = data[SYSEX_U32_SIZE + index + 2];
-      index += 3;
+
+      //MK: added offset to the parse
+      note.offset = data[SYSEX_U32_SIZE + index + 3];
+
+      // increase index by one to parse also offset
+      index += 4;
     }
     notes[tr][i] = note;
   }
@@ -138,11 +161,48 @@ void onDataReceive(u8 *data, u16 count) {
     return;
   }
   u8 tr = data[4];
+
+
+  //MK: set project
+  if (tr == 0x7C) {
+	  u8 pt = data[5];
+	  if (pt<PROJECT_COUNT) {
+		 project = pt;
+	  }
+  }
+
+  //MK: project file status
+  if (tr == 0x7D) {
+  u8 pt = data[5];
+  u8 status = data[6];
+	  if (pt<PROJECT_COUNT) {
+		// on/off: 0/1
+		if (status==0) {
+			hal_plot_led(TYPEPAD, 81 + pt - 18 * (pt / 8), 0, 0, 0);
+		}
+		// highlight current project
+		else if (pt==project) {
+			hal_plot_led(TYPEPAD, 81 + pt - 18 * (pt / 8), SYSEX_DUMP_COLOR_R, SYSEX_DUMP_COLOR_G, SYSEX_DUMP_COLOR_B);
+		}
+		else {
+		  hal_plot_led(TYPEPAD, 81 + pt - 18 * (pt / 8), SYSEX_DUMP_COLOR_R >> 3, SYSEX_DUMP_COLOR_G >> 3, SYSEX_DUMP_COLOR_B >> 3);
+		}
+	  }
+  }
+
+  //MK: mutesettings
+  if (tr == 0x7E) {
+  	u8 mt = data[5];
+  	parseMuteSettings(mt,&data[6]);
+    }
+
   if (tr == 0x7F) {
     parseGlobalSettings(&data[5]);
-  } else if (tr >= MAX_SEQ_LENGTH) {
+  }
+  else if (tr >= MAX_SEQ_LENGTH) {
     return;
-  } else {
+  }
+  else {
     parseTrackSettings(tr, &data[5]);
     parseTrackSequence(tr, &data[5 + TRACK_SETTINGS_SIZE]);
     if (tr == track) {
@@ -179,3 +239,169 @@ void sendGlobalSettingsData(u8 port) {
   data[5 + GLOBAL_SETTINGS_SIZE] = 0xF7;
   hal_send_sysex(port, data, 6 + GLOBAL_SETTINGS_SIZE);
 }
+
+//MK: start message for sendAllSysexData function
+void sendStartMessage(u8 port) {
+  u8 data[8];
+  data[0] = 0xF0;
+  // 00H 20H 29H -> Focusrite/Novation manufacturer ID
+  data[1] = 0x00;
+  data[2] = 0x20;
+  data[3] = 0x29;
+  // track number 246 for start/end messages
+  data[4] = 0xF6;
+  // 1 for start, 2 for end
+  data[5] = project;
+  data[6] = 0x01;
+  data[7] = 0xF7;
+  hal_send_sysex(port, data, 8);
+}
+
+void sendEndMessage(u8 port) {
+	  u8 data[8];
+	  data[0] = 0xF0;
+	  // 00H 20H 29H -> Focusrite/Novation manufacturer ID
+	  data[1] = 0x00;
+	  data[2] = 0x20;
+	  data[3] = 0x29;
+	  // track number 246 for start/end messages
+	  data[4] = 0xF6;
+	  data[5] = project;
+	  // 1 for start, 2 for end
+	  data[6] = 0x02;
+	  data[7] = 0xF7;
+	  hal_send_sysex(port, data, 8);
+
+}
+
+
+void sendTrackMuteData(u8 port, u8 mt) {
+  u8 data[7 + MUTE_SETTINGS_SIZE];
+  data[0] = 0xF0;
+  // 00H 20H 29H -> Focusrite/Novation manufacturer ID
+  data[1] = 0x00;
+  data[2] = 0x20;
+  data[3] = 0x29;
+  // track number 126 for mute data
+  data[4] = 0x7E;
+  // mute place number
+  data[5] = mt;
+  formatMuteData(&data[6],mt);
+  data[6 + MUTE_SETTINGS_SIZE] = 0xF7;
+  hal_send_sysex(port, data, 7 + MUTE_SETTINGS_SIZE);
+}
+
+void loadProject(u8 port, u8 pt) {
+	  u8 data[8];
+	  data[0] = 0xF0;
+	  // 00H 20H 29H -> Focusrite/Novation manufacturer ID
+	  data[1] = 0x00;
+	  data[2] = 0x20;
+	  data[3] = 0x29;
+	  // track number 246 for comm messages
+	  data[4] = 0xF6;
+	  data[5] = pt;
+	  // 3 for loading project
+	  data[6] = 0x03;
+	  data[7] = 0xF7;
+	  hal_send_sysex(port, data, 8);
+}
+void requestProjectStatus(u8 port) {
+	  u8 data[8];
+	  data[0] = 0xF0;
+	  // 00H 20H 29H -> Focusrite/Novation manufacturer ID
+	  data[1] = 0x00;
+	  data[2] = 0x20;
+	  data[3] = 0x29;
+	  // track number 246 for comm messages
+	  data[4] = 0xF6;
+	  data[5] = 0x00;
+	  // 4 for project status
+	  data[6] = 0x04;
+	  data[7] = 0xF7;
+	  hal_send_sysex(port, data, 8);
+}
+
+void requestMidiClockStart(u8 port) {
+	  u8 data[8];
+	  data[0] = 0xF0;
+	  // 00H 20H 29H -> Focusrite/Novation manufacturer ID
+	  data[1] = 0x00;
+	  data[2] = 0x20;
+	  data[3] = 0x29;
+	  // track number 246 for start/end messages
+	  data[4] = 0xF6;
+	  data[5] = 0x00;
+	  // 5 for Start clock, 6 for Stop clock
+	  data[6] = 0x05;
+	  data[7] = 0xF7;
+	  hal_send_sysex(port, data, 8);
+}
+
+void requestMidiClockStop(u8 port) {
+	  u8 data[8];
+	  data[0] = 0xF0;
+	  // 00H 20H 29H -> Focusrite/Novation manufacturer ID
+	  data[1] = 0x00;
+	  data[2] = 0x20;
+	  data[3] = 0x29;
+	  // track number 246 for comm messages
+	  data[4] = 0xF6;
+	  data[5] = 0x00;
+	  // 5 for Start clock, 6 for Stop clock
+	  data[6] = 0x06;
+	  data[7] = 0xF7;
+	  hal_send_sysex(port, data, 8);
+}
+
+void requestSceneTempo(u8 port, u8 sc) {
+	  u8 data[8];
+	  data[0] = 0xF0;
+	  // 00H 20H 29H -> Focusrite/Novation manufacturer ID
+	  data[1] = 0x00;
+	  data[2] = 0x20;
+	  data[3] = 0x29;
+	  // track number 246 for comm messages
+	  data[4] = 0xF6;
+	  // session number
+	  data[5] = sc;
+	  // 7 for Tempo request
+	  data[6] = 0x07;
+	  data[7] = 0xF7;
+	  hal_send_sysex(port, data, 8);
+}
+
+void viewProjectName(u8 port, u8 pt) {
+	  u8 data[8];
+	  data[0] = 0xF0;
+	  // 00H 20H 29H -> Focusrite/Novation manufacturer ID
+	  data[1] = 0x00;
+	  data[2] = 0x20;
+	  data[3] = 0x29;
+	  // track number 246 for comm messages
+	  data[4] = 0xF6;
+	  data[5] = pt;
+	  // 8 for view project name
+	  data[6] = 0x08;
+	  data[7] = 0xF7;
+	  hal_send_sysex(port, data, 8);
+
+}
+
+void deleteProject(u8 port, u8 pt) {
+	  u8 data[8];
+	  data[0] = 0xF0;
+	  // 00H 20H 29H -> Focusrite/Novation manufacturer ID
+	  data[1] = 0x00;
+	  data[2] = 0x20;
+	  data[3] = 0x29;
+	  // track number 246 for comm messages
+	  data[4] = 0xF6;
+	  data[5] = pt;
+	  // 9 for delete project
+	  data[6] = 0x09;
+	  data[7] = 0xF7;
+	  hal_send_sysex(port, data, 8);
+
+}
+

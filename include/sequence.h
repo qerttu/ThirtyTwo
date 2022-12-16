@@ -5,12 +5,13 @@
 
 #define TRACK_COUNT 32
 #define MAX_SEQ_LENGTH 32
-
-//MK: scene count
 #define SCENE_COUNT 6
+#define PROJECT_COUNT 32
+#define DRUMPAD_COUNT 16
 
 #define GATE_FULL 6
 #define GATE_TIE 7
+#define OFFSET_MP 8
 
 #define FAKE_PORT 255
 
@@ -18,11 +19,12 @@ typedef struct {
   u8 value;
   u8 velocity;
   u8 gate;
+  u8 offset;
 } MIDI_NOTE;
 
 typedef enum { STOPPED, STARTING, PLAYING, STOPPING } CLOCK_STATE;
 
-typedef enum { EDIT, MUTE, REPEAT, SAVE, CLEAR } SETUP_PAGE;
+typedef enum { EDIT, MUTE, REPEAT, SAVE, CLEAR, SEQ } SETUP_PAGE;
 
 static const u8 AVAILABLE_STEP_SIZES[8][7] = {//10% 25% 33% 50% 66% 75% 100%
                                                { 1,  1,  1,  2,  2,  2,  3},
@@ -51,11 +53,17 @@ extern u8 track;
 
 //MK: added scene for mutes
 extern u8 scene;
+
+//MK: added project
+extern u8 project;
+
+//MK: added requestClock;
+extern u8 requestClock;
+
 extern u32 stepRepeat;
 extern s8 repeatStart;
 extern u8 repeatLength;
 
-//MK: trackmutes for scenes
 extern u32 trackMute[SCENE_COUNT];
 extern u32 trackRepeat;
 extern u8 clockOut;
@@ -63,12 +71,17 @@ extern u8 tempo;
 
 extern MIDI_NOTE notes[TRACK_COUNT][MAX_SEQ_LENGTH];
 extern MIDI_NOTE inputNotes[TRACK_COUNT];
+
+// MK: buffer for one note/step/track
+extern MIDI_NOTE notesBuffer[TRACK_COUNT];
+
 extern u8 octave[TRACK_COUNT];
 extern u8 channel[TRACK_COUNT];
 extern u8 seqLength[TRACK_COUNT];
 extern u8 midiPort[TRACK_COUNT];
 extern u8 stepSize[TRACK_COUNT];
 extern u8 drumTrack[TRACK_COUNT]; // 0 = keyboard, 1 = drumpads
+extern u8 drumMachine[TRACK_COUNT]; // 0 = volca beats, 1 = volca sample, 2 = MPC
 
 
 
@@ -77,6 +90,8 @@ extern u8 drumTrack[TRACK_COUNT]; // 0 = keyboard, 1 = drumpads
 u8 trackContainsNotes(u8 i);
 
 void clearTrack(u8 trk);
+
+void deleteAllTracks();
 
 void updateMidiPort(u8 trk, u8 mp);
 
@@ -103,9 +118,13 @@ void updateTrackStepSize(u8 trk, u8 stepSizeIndex);
 
 void playLiveNote(u8 index, u8 value);
 
+void playLiveDrumNote(u8 index, u8 value, u8 machine);
+
 void stopPlayedNote(u8 i);
 
 void onMidiReceive(u8 port, u8 status, u8 d1, u8 d2);
+
+void playNotesInBuffer();
 
 void handleInternalClock();
 

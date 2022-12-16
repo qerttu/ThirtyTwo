@@ -9,7 +9,14 @@ u16 settingsSlotPressTimes[8] = {0};
 u8 setupMode = 0;
 u8 setupButtonPressed = 0;
 u8 tempoSelect = 0;
+u8 muteTrackSelect = 0;
 u8 sysexMidiPort = USBSTANDALONE;
+u8 saveSelect = 0;
+u8 loadSelect = 0;
+u8 deleteSelect = 0;
+
+// MK: status for sendSysex time function
+u8 sendSysex = 0;
 
 //first commit
 
@@ -20,6 +27,41 @@ s8 indexOf(u8 element, const u8 array[], u8 arraysize) {
     }
   }
   return -1;
+}
+
+s8 noteToDrumIndex(u8 note, u8 machine) {
+	if (drumTrack[track]) {
+
+		u8 indx = -1;
+		s8 relIndex = 0;
+
+		switch (machine) {
+
+		case 1: // sample
+			relIndex = indexOf(note, VOLCA_SAMPLE_NOTES, 10);
+			if (relIndex>=0){
+				indx = VOLCA_SAMPLE_INDEXES[relIndex];
+			}
+		break;
+
+		case 2: // MPC
+			relIndex = indexOf(note, MPC_NOTES, 16);
+			if (relIndex>=0){
+				indx = MPC_INDEXES[relIndex];
+			}
+		break;
+
+		case 0: // beats
+		default:
+			relIndex = indexOf(note, VOLCA_BEATS_NOTES, 7);
+			if (relIndex>=0){
+				indx = VOLCA_BEATS_INDEXES[relIndex];
+			}
+			break;
+		}
+		return indx > 127 ? -1 : indx;
+	}
+	return -1;
 }
 
 s8 noteToIndex(u8 note) {
@@ -59,7 +101,41 @@ s8 indexToNote(u8 index) {
   return -1;
 }
 
+s8 indexToDrumNote(u8 index, u8 machine) {
 
+		if (drumTrack[track]) {
+			u8 note = -1;
+			s8 relNote = 0;
+			switch (machine) {
+
+			case 1: // sample
+				relNote = indexOf(index,VOLCA_SAMPLE_INDEXES, 10);
+				if (relNote>=0) {
+					note = VOLCA_SAMPLE_NOTES[relNote];
+				}
+			break;
+
+			case 2: // MPC
+				relNote = indexOf(index,MPC_INDEXES, 16);
+				if (relNote>=0) {
+					note = MPC_NOTES[relNote];
+				}
+			break;
+
+			case 0: // mpc jjos2xl
+			default:
+				relNote = indexOf(index,MPC2_INDEXES, 16);
+				if (relNote>=0) {
+					note = MPC2_NOTES[relNote];
+				}
+
+			break;
+			}
+			return note > 127 ? -1 : note;
+		}
+
+	return -1;
+}
 
 u8 velocityFade(u8 led, u8 velocity) {
   return led ? led * velocity >> 7 | 3 : 0;
@@ -109,11 +185,16 @@ void drawNotePads() {
     }
   }
 
-  if (stepPress) {
+  if (stepPress) { // gate and offset
     u8 i = 0;
     while (i < MAX_SEQ_LENGTH && !(stepPress & (1 << i))) i++;
+
     u8 gate = notes[track][i].gate;
+    u8 offset = notes[track][i].offset;
+
     for (u8 j = 0; j < 8; j++) {
+
+      // gate
       if (j == gate) {
         hal_plot_led(TYPEPAD, (j + 1) * 10 + 8, CHANNEL_COLORS[channel[track]][0],
                                                 CHANNEL_COLORS[channel[track]][1],
@@ -123,6 +204,21 @@ void drawNotePads() {
       } else {
         hal_plot_led(TYPEPAD, (j + 1) * 10 + 8, BLACK_KEY_COLOR_R, BLACK_KEY_COLOR_G, BLACK_KEY_COLOR_B);
       }
+
+      // offset
+     if (drumTrack[track]) {
+      if ((j*OFFSET_MP) == offset) {
+        hal_plot_led(TYPEPAD, (j + 1) * 10 + 7, CHANNEL_COLORS[channel[track]][0],
+                                                CHANNEL_COLORS[channel[track]][1],
+                                                CHANNEL_COLORS[channel[track]][2]);
+      } else if (j == 7) {
+        hal_plot_led(TYPEPAD, (j + 1) * 10 + 7, WHITE_KEY_COLOR_R, WHITE_KEY_COLOR_G, WHITE_KEY_COLOR_B);
+      } else {
+        hal_plot_led(TYPEPAD, (j + 1) * 10 + 7, OFFSET_COLOR_R, OFFSET_COLOR_G, OFFSET_COLOR_B);
+      }
+     }
+
+
     }
   } else { // octave selector
     hal_plot_led(TYPEPAD, (octave[track] + 1) * 10 + 8, CHANNEL_COLORS[channel[track]][0],
@@ -157,27 +253,82 @@ void drawSetupMode() {
 
 	//MK: changed to match the channel color
 	for (u8 i = 0; i < TRACK_COUNT; i++) {
-	  if (trackMute[scene] & (1 << i)) {
-		  hal_plot_led(TYPEPAD, 81 + i - 18 * (i / 8), CHANNEL_COLORS[channel[i]][0] >> 3, CHANNEL_COLORS[channel[i]][1] >> 3,
-					   CHANNEL_COLORS[channel[i]][2] >> 3);
+
+		if (trackMute[scene] & (1 << i)) {
+		  if (i==track) {
+		        hal_plot_led(TYPEPAD, 81 + i - 18 * (i / 8), WHITE_KEY_COLOR_R >>3,
+		                                      	  	  	  	 WHITE_KEY_COLOR_G >>3,
+		                                      	  	  	  	 WHITE_KEY_COLOR_B >>3);
+		  }
+		  else {
+		  hal_plot_led(TYPEPAD, 81 + i - 18 * (i / 8), CHANNEL_COLORS[channel[i]][0] >> 3,
+				  	  	  	  	  	  	  	  	  	   CHANNEL_COLORS[channel[i]][1] >> 3,
+				  	  	  	  	  	  	  	  	  	   CHANNEL_COLORS[channel[i]][2] >> 3);
+
+		  }
 	  } else {
-		  hal_plot_led(TYPEPAD, 81 + i - 18 * (i / 8), CHANNEL_COLORS[channel[i]][0], CHANNEL_COLORS[channel[i]][1],
-							   CHANNEL_COLORS[channel[i]][2]);
+		  if (i==track) {
+		        hal_plot_led(TYPEPAD, 81 + i - 18 * (i / 8), WHITE_KEY_COLOR_R,
+		                                      	  	  	  	 WHITE_KEY_COLOR_G,
+		                                      	  	  	  	 WHITE_KEY_COLOR_B);
+		  }
+		  else {
+			  hal_plot_led(TYPEPAD, 81 + i - 18 * (i / 8), CHANNEL_COLORS[channel[i]][0], CHANNEL_COLORS[channel[i]][1],
+								   CHANNEL_COLORS[channel[i]][2]);
+
+		  }
 	  }
 	}
 
     //MK: scene buttons
     for (u8 i = 0; i < SCENE_COUNT; i++) {
       if (i==scene) {
-        hal_plot_led(TYPEPAD, 31 + i, WHITE_KEY_COLOR_R,
+        hal_plot_led(TYPEPAD, 43 + i, WHITE_KEY_COLOR_R,
                                       WHITE_KEY_COLOR_G,
                                       WHITE_KEY_COLOR_B);
       } else {
-        hal_plot_led(TYPEPAD, 31 + i, WHITE_KEY_COLOR_R >> 3,
+        hal_plot_led(TYPEPAD, 43 + i, WHITE_KEY_COLOR_R >> 3,
                                       WHITE_KEY_COLOR_G >> 3,
                                       WHITE_KEY_COLOR_B >> 3);
       }
     }
+
+    //MK: muteTrackSelect button
+	if (muteTrackSelect >0) {
+		hal_plot_led(TYPEPAD, 41, CLOCK_STATE_COLOR_R, CLOCK_STATE_COLOR_G, CLOCK_STATE_COLOR_B);
+	}
+		else {
+		hal_plot_led(TYPEPAD, 41, CLOCK_STATE_COLOR_R >> 3, CLOCK_STATE_COLOR_G >> 3, CLOCK_STATE_COLOR_B >> 3);
+	}
+
+	//MK: drum mode buttons
+	if (drumTrack[track]) {
+	  for (u8 i = 0; i < DRUMPAD_COUNT; i++) {
+	        hal_plot_led(TYPEPAD, 31 + i - 18 * (i / 8), DRUM_MACHINE_COLOR_R,
+	        							  DRUM_MACHINE_COLOR_G,
+	        							  DRUM_MACHINE_COLOR_B);
+	    }
+
+	  for (u8 i = 0; i < MAX_SEQ_LENGTH; i++) {
+	    if (stepPress & (1 << i)) {
+	      MIDI_NOTE note = notes[track][i];
+	      if (note.velocity) {
+	        s8 index = noteToDrumIndex(note.value,drumMachine[track]);
+	        // testing with a blank spot....
+	    	//s8 index = 42;
+	    	if (index >= 0) {
+	          hal_plot_led(TYPEPAD, index,
+	                       velocityFade(CHANNEL_COLORS[channel[track]][0], note.velocity),
+	                       velocityFade(CHANNEL_COLORS[channel[track]][1], note.velocity),
+	                       velocityFade(CHANNEL_COLORS[channel[track]][2], note.velocity));
+	        }
+	      }
+	    }
+	  }
+	}
+
+
+
 
     break;
 
@@ -191,15 +342,23 @@ void drawSetupMode() {
     }
     break;
 
+  //MK: changed track SAVE to project load/save
   case SAVE:
-    for (u8 i = 0; i < TRACK_COUNT; i++) {
-      if (trackContainsNotes(i)) {
+    // request project status
+	//requestProjectStatus(sysexMidiPort);
+
+	for (u8 i = 0; i < PROJECT_COUNT; i++) {
+      if (project==i) {
         hal_plot_led(TYPEPAD, 81 + i - 18 * (i / 8), SYSEX_DUMP_COLOR_R, SYSEX_DUMP_COLOR_G, SYSEX_DUMP_COLOR_B);
-      } else {
-        hal_plot_led(TYPEPAD, 81 + i - 18 * (i / 8), SYSEX_DUMP_COLOR_R >> 3, SYSEX_DUMP_COLOR_G >> 3, SYSEX_DUMP_COLOR_B >> 3);
       }
+
+    //  else {
+    //    hal_plot_led(TYPEPAD, 81 + i - 18 * (i / 8), SYSEX_DUMP_COLOR_R >> 3, SYSEX_DUMP_COLOR_G >> 3, SYSEX_DUMP_COLOR_B >> 3);
+    //  }
+
+
     }
-    hal_plot_led(TYPEPAD, 41, SYSEX_DUMP_COLOR_R, SYSEX_DUMP_COLOR_G, SYSEX_DUMP_COLOR_B);
+    //hal_plot_led(TYPEPAD, 41, SYSEX_DUMP_COLOR_R, SYSEX_DUMP_COLOR_G, SYSEX_DUMP_COLOR_B);
 
     for (u8 i = 0; i < 3; i++) {
       if (sysexMidiPort == i) {
@@ -220,6 +379,31 @@ void drawSetupMode() {
                                       SETTINGS_COLOR_B);
       }
     }
+
+    //MK: loadSelect button
+	if (loadSelect >0) {
+		hal_plot_led(TYPEPAD, 41, REPEAT_COLOR_R, REPEAT_COLOR_G, REPEAT_COLOR_B);
+	}
+		else {
+		hal_plot_led(TYPEPAD, 41, REPEAT_COLOR_R >> 3, REPEAT_COLOR_G >> 3, REPEAT_COLOR_B >> 3);
+	}
+
+    //MK: saveSelect button
+	if (saveSelect >0) {
+		hal_plot_led(TYPEPAD, 42, CLOCK_STATE_COLOR_R, CLOCK_STATE_COLOR_G, CLOCK_STATE_COLOR_B);
+	}
+		else {
+		hal_plot_led(TYPEPAD, 42, CLOCK_STATE_COLOR_R >> 3, CLOCK_STATE_COLOR_G >> 3, CLOCK_STATE_COLOR_B >> 3);
+	}
+
+	//MK: deleteSelect button
+	if (deleteSelect >0) {
+		hal_plot_led(TYPEPAD, 44, CLEAR_TRACK_COLOR_R, CLEAR_TRACK_COLOR_G, CLEAR_TRACK_COLOR_B);
+	}
+		else {
+		hal_plot_led(TYPEPAD, 44, CLEAR_TRACK_COLOR_R >> 3, CLEAR_TRACK_COLOR_G >> 3, CLEAR_TRACK_COLOR_B >> 3);
+	}
+
     break;
 
   case CLEAR:
@@ -237,7 +421,16 @@ void drawSetupMode() {
         hal_plot_led(TYPEPAD, 81 + i - 18 * (i / 8), CLEAR_TRACK_COLOR_R >> 3, CLEAR_TRACK_COLOR_G >> 3, CLEAR_TRACK_COLOR_B >> 3);
       }
     }
+
+    // clear all button
+    hal_plot_led(TYPEPAD, 41, CLEAR_TRACK_ARM_COLOR_R, CLEAR_TRACK_ARM_COLOR_G, CLEAR_TRACK_ARM_COLOR_B);
+
+
     break;
+
+  case SEQ:
+
+	  break;
 
   case EDIT:
   default:
@@ -278,9 +471,15 @@ void drawSetupMode() {
 
       // track mode
       if (drumTrack[track]) {
-        hal_plot_led(TYPEPAD, 14, TRACK_MODE_COLOR_R, TRACK_MODE_COLOR_G, TRACK_MODE_COLOR_B);
-      } else {
-        hal_plot_led(TYPEPAD, 14, TRACK_MODE_COLOR_R >> 3, TRACK_MODE_COLOR_G >> 3, TRACK_MODE_COLOR_B >> 3);
+    	  //MK: select drummachine layout
+    	  for(u8 i =0; i<3;i++){
+			  if (drumMachine[track]==i) {
+				hal_plot_led(TYPEPAD, 13+i, TRACK_MODE_COLOR_R, TRACK_MODE_COLOR_G, TRACK_MODE_COLOR_B);
+			 }
+			  else {
+				hal_plot_led(TYPEPAD, 13+i, TRACK_MODE_COLOR_R >> 3, TRACK_MODE_COLOR_G >> 3, TRACK_MODE_COLOR_B >> 3);
+			  }
+    	  }
       }
 
       // MIDI out selection
@@ -295,6 +494,16 @@ void drawSetupMode() {
       }
 
     } else {
+
+     // MK: MIDI clock receive setting
+     if (requestClock==1) {
+    	 hal_plot_led(TYPEPAD, 38, CLOCK_STATE_COLOR_MIDI_R, CLOCK_STATE_COLOR_MIDI_G, CLOCK_STATE_COLOR_MIDI_B);
+     }
+     else
+     {
+    	 hal_plot_led(TYPEPAD, 38, CLOCK_STATE_COLOR_MIDI_R >> 3, CLOCK_STATE_COLOR_MIDI_G >> 3, CLOCK_STATE_COLOR_MIDI_B >> 3);
+     }
+
       // MIDI clock out
       for (u8 i = 0; i < 3; i++) {
         if (clockOut & (1 << i)) {
@@ -308,7 +517,7 @@ void drawSetupMode() {
 
   if (trackSelectStart < 0) {
     // settings page
-    for (u8 i = 0; i < 5; i++) {
+    for (u8 i = 0; i < 6; i++) {
       if (setupPage == i) {
         hal_plot_led(TYPEPAD, 11 + i, SETUP_PAGE_COLOR_R, SETUP_PAGE_COLOR_G,
                      SETUP_PAGE_COLOR_B);
@@ -327,7 +536,9 @@ void drawSetupMode() {
 
     // tempo select
     hal_plot_led(TYPEPAD, 18, TEMPO_SELECT_COLOR_R, TEMPO_SELECT_COLOR_G, TEMPO_SELECT_COLOR_B);
+
   }
+
 }
 
 void drawSeqDepSetupPage() {
@@ -486,10 +697,12 @@ void onTrackSettingsGridTouch(u8 index, u8 value) {
       rotateTrackRight(i);
     }
     drawSeqSteps();
-  } else if (value && index == 14) {
+  } else if (value && index >=13 && index <=15) {
     u8 newDrumTrack = drumTrack[track] ? 0 : 1;
+    u8 newDrumMachine = index-13;
     for (u8 i = trackSelectStart; i <= trackSelectEnd; i++) {
       drumTrack[i] = newDrumTrack;
+      drumMachine[i] = newDrumMachine;
     }
     drawSetupMode();
   } else if (value && index >= 16 && index <= 18) {
@@ -506,8 +719,9 @@ void onSetupGridTouch(u8 index, u8 value) {
   }
 
   if (trackSelectStart < 0) {
-    // Bottom row
-    if (value && index >= 11 && index <= 15) {
+
+	// Bottom row
+    if (value && index >= 11 && index <= 16) {
       setupPage = index - 11;
       if (setupPage == CLEAR) {
         clearTrackArm = 0;
@@ -518,14 +732,20 @@ void onSetupGridTouch(u8 index, u8 value) {
         drawSeqSteps();
       }
       drawSetupMode();
-    } else if (value && index == 17) {
+    }
+
+    // start button
+    else if (value && index == 17) {
       if (!seqPlay && clockState == STOPPED) {
         clockState = STARTING;
         drawSetupMode();
       } else if (clockState == PLAYING) {
         clockState = STOPPING;
       }
-    } else if (index == 18) {
+    }
+
+    // tempo select
+    else if (index == 18) {
       tempoSelect = value;
       drawSeqSteps();
     }
@@ -535,16 +755,78 @@ void onSetupGridTouch(u8 index, u8 value) {
 
   switch (setupPage) {
   case MUTE:
-    if (value && index >= 51 && index <= 88) {
-      updateTrackMute(63 + index - 18 * (index / 10));
-      drawSetupMode();
-    }
 
-    //MK: scene buttons
-    if (value && index >= 31 && index <= 36) {
-    	scene = index - 31;
-    	drawSetupMode();
-    }
+	//MK: if not mute track select pressed
+	if (value && index >= 51 && index <= 88 && (muteTrackSelect==0)) {
+	  updateTrackMute(63 + index - 18 * (index / 10));
+	  drawSetupMode();
+	}
+
+	//MK: if mute track select pressed
+	if (value && index >= 51 && index <= 88 && (muteTrackSelect>0)) {
+	      track = 63 + index - 18 * (index / 10);
+	      drawSetupMode();
+	      drawSeqSteps();
+	}
+
+	//MK: mute track select
+	if (index==41) {
+		muteTrackSelect=value;
+	}
+
+	//MK: scene buttons
+	if (value && index >= 43 && index <= 48) {
+		// set scene
+		scene = index - 43;
+
+		// draw pads again
+		drawSetupMode();
+
+		// send request tempo sysx
+		requestSceneTempo(sysexMidiPort, scene);
+
+		//send programchange message to DIN
+		hal_send_midi(2,PC,scene,0);
+	}
+
+	// change color of the mute track select if pressed
+	if (muteTrackSelect >0) {
+		hal_plot_led(TYPEPAD, 41, CLOCK_STATE_COLOR_R, CLOCK_STATE_COLOR_G, CLOCK_STATE_COLOR_B);
+	}
+		else {
+		hal_plot_led(TYPEPAD, 41, CLOCK_STATE_COLOR_R >> 3, CLOCK_STATE_COLOR_G >> 3, CLOCK_STATE_COLOR_B >> 3);
+	}
+
+	// drum mode buttons
+	if (index >=21 && index <=38) {
+
+		// if steps are pressed
+        if (stepPress) { // step record
+          if (value) {
+            s8 note = indexToDrumNote(index,drumMachine[track]);
+            if (note >= 0) {
+              inputNotes[track].value = note;
+              inputNotes[track].velocity = value;
+              for (u8 i = 0; i < MAX_SEQ_LENGTH; i++) {
+                if (stepPress & (1 << i)) {
+                  if (seqPlay && seqPlayHeads[track] == i) {
+                    stopPlayedNote(track);
+                  }
+                  notes[track][i] = inputNotes[track];
+                }
+              }
+              drawSeqSteps();
+              drawSetupMode();
+            }
+          }
+        }
+
+        // MK: play drum notes
+        if (!stepPress || !seqPlay) { // play note
+          playLiveDrumNote(index, value,drumMachine[track]);
+        }
+
+	}
 
     break;
 
@@ -555,12 +837,44 @@ void onSetupGridTouch(u8 index, u8 value) {
     }
     break;
 
+  //MK: changed to project load/save
   case SAVE:
-    if (value && index >= 51 && index <= 88) {
-      sendTrackData(sysexMidiPort, 63 + index - 18 * (index / 10));
-    } else if (value && index == 41) {
-      sendGlobalSettingsData(sysexMidiPort);
-    } else if (value && index >= 46 && index <= 48) {
+
+	// if loadselect pressed, load project
+	if ((loadSelect>0) && (saveSelect==0) && (deleteSelect==0)) {
+    	if (project <255) {
+		//project = 63 + index - 18 * (index / 10);
+    	drawSetupMode();
+    	deleteAllTracks();
+    	loadProject(sysexMidiPort,project);
+    	}
+	  }
+
+	// if saveselect pressed, save project
+	if (value && index >= 51 && index <= 88 && (saveSelect>0) && (loadSelect==0) && (deleteSelect==0)) {
+    	project = 63 + index - 18 * (index / 10);
+    	drawSetupMode();
+    	sendSysex=1;
+	  }
+	// if deleteSelect pressed, delete
+	if (value && index >= 51 && index <= 88 && (deleteSelect>0) && (loadSelect==0) && (saveSelect==0)) {
+    	project = 63 + index - 18 * (index / 10);
+    	drawSetupMode();
+    	deleteProject(sysexMidiPort,project);
+	  }
+
+	// if projects pressed only, send display sysex
+    if (value && index >= 51 && index <= 88 && (saveSelect==0) && (loadSelect==0) && (deleteSelect==0)) {
+    	project = 63 + index - 18 * (index / 10);
+    	drawSetupMode();
+    	viewProjectName(sysexMidiPort,project);
+    }
+    //else if (value && index == 41) {
+    //  sendGlobalSettingsData(sysexMidiPort);
+    //} else if (value && index ==42) {
+    //	sendSysex=1;
+    //}
+    else if (value && index >= 46 && index <= 48) {
       sysexMidiPort = index - 46;
       drawSetupMode();
     } else if (index >= 31 && index <= 36) { // 36 = 31 + SETTINGS_SLOT_COUNT - 1
@@ -580,14 +894,72 @@ void onSetupGridTouch(u8 index, u8 value) {
         drawSetupMode();
       }
     }
+
+    //MK: load select value
+	if (index==41) {
+		loadSelect=value;
+	}
+
+	//MK: save select value
+	if (index==42) {
+		saveSelect=value;
+	}
+
+	//MK: delete select valie
+	if (index==44) {
+		deleteSelect=value;
+	}
+
+	// change color of the save select, load select and delete select if pressed
+	if (loadSelect >0) {
+		hal_plot_led(TYPEPAD, 41, REPEAT_COLOR_R, REPEAT_COLOR_G, REPEAT_COLOR_B);
+	}
+		else {
+		hal_plot_led(TYPEPAD, 41, REPEAT_COLOR_R >> 3, REPEAT_COLOR_G >> 3, REPEAT_COLOR_B >> 3);
+	}
+
+	if (saveSelect >0) {
+		hal_plot_led(TYPEPAD, 42, CLOCK_STATE_COLOR_R, CLOCK_STATE_COLOR_G, CLOCK_STATE_COLOR_B);
+	}
+		else {
+		hal_plot_led(TYPEPAD, 42, CLOCK_STATE_COLOR_R >> 3, CLOCK_STATE_COLOR_G >> 3, CLOCK_STATE_COLOR_B >> 3);
+	}
+
+	if (deleteSelect >0) {
+		hal_plot_led(TYPEPAD, 44, CLEAR_TRACK_COLOR_R, CLEAR_TRACK_COLOR_G, CLEAR_TRACK_COLOR_B);
+	}
+		else {
+		hal_plot_led(TYPEPAD, 44, CLEAR_TRACK_COLOR_R >> 3, CLEAR_TRACK_COLOR_G >> 3, CLEAR_TRACK_COLOR_B >> 3);
+	}
+
     break;
 
   case CLEAR:
-    if (value && index >= 51 && index <= 88) {
+
+    // clear specific track
+	if (value && index >= 51 && index <= 88) {
       clearTrack(63 + index - 18 * (index / 10));
       drawSetupMode();
     }
+
+	// clear all tracks
+	if (value && index == 41) {
+
+	    for (u8 i = 0; i < TRACK_COUNT; i++) {
+	      if (trackContainsNotes(i)) {
+	    	  clearTrack(i);
+	      }
+	    }
+
+	    drawSetupMode();
+	}
+
+
     break;
+
+  case SEQ:
+
+	  break;
 
   case EDIT:
   default:
@@ -600,6 +972,16 @@ void onSetupGridTouch(u8 index, u8 value) {
     } else if (value && index >= 26 && index <= 28) {
       toggleClockOutPort(index - 26);
       drawSetupMode();
+    }
+    // requestMidiClock setting
+    else if(value && index == 38) {
+    	if (requestClock==0) {
+    		requestClock=1;
+    	}
+    	else {
+    		requestClock=0;
+    	}
+    	drawSetupMode();
     }
   }
 }
@@ -632,7 +1014,22 @@ void onAnyTouch(u8 type, u8 index, u8 value) {
             }
             drawNotePads();
           }
-        } else { // note inputs
+        }
+        else if (drumTrack[track] && (index % 10 == 7)) { // select offset if drumtrack
+            if (value) {
+              if (stepPress) {
+                u8 offset = (index / 10)-1;
+                inputNotes[track].offset = offset*OFFSET_MP;
+                for (u8 i = 0; i < MAX_SEQ_LENGTH; i++) {
+                  if (stepPress & (1 << i)) {
+                    notes[track][i].offset = offset*OFFSET_MP;
+                  }
+                }
+              }
+              drawNotePads();
+            }
+        }
+        else { // note inputs
           if (stepPress) { // step record
             if (value) {
               s8 note = indexToNote(index);
@@ -716,4 +1113,50 @@ void updatePressTimes() {
     }
   }
 
+}
+
+//MK: send all tracks with 50ms delay between sends
+void sendAllSysexData() {
+#define DELAY_MS 50
+
+	static u8 ms = DELAY_MS;
+	static u8 tr_sysex = 0;
+
+	if (sendSysex==1) {
+
+		if (++ms >= DELAY_MS) {
+			  ms = 0;
+
+			  // sending Start message before first track
+			  if (tr_sysex == 0){
+				  sendStartMessage(sysexMidiPort);
+			  }
+
+			  // send track data
+			  if (trackContainsNotes(tr_sysex)) {
+				  sendTrackData(sysexMidiPort, tr_sysex);
+			  }
+
+			  ++tr_sysex;
+
+			  if (tr_sysex>TRACK_COUNT) {
+
+				  // send global settings
+				  sendGlobalSettingsData(sysexMidiPort);
+
+				  // send trackmute data
+				  for (u8 i=0; i<SCENE_COUNT;i++){
+					  sendTrackMuteData(sysexMidiPort,i);
+				  }
+
+
+				  // send end message
+				  sendEndMessage(sysexMidiPort);
+				  sendSysex=0;
+				  tr_sysex=0;
+
+			  }
+
+		}
+	}
 }

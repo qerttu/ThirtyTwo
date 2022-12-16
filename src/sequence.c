@@ -1,6 +1,7 @@
 #include "sequence.h"
 #include "app.h"
 #include "surface.h"
+#include "data.h"
 
 u8 seqPlay;
 u8 seqPlayHeads[TRACK_COUNT];
@@ -11,6 +12,8 @@ u32 clearTrackArm;
 SETUP_PAGE setupPage;
 u8 track;
 u8 scene;
+u8 project;
+
 u32 stepRepeat;
 s8 repeatStart;
 u8 repeatLength;
@@ -24,15 +27,19 @@ u32 trackMute[SCENE_COUNT];
 u32 trackRepeat;
 u8 clockOut;
 u8 tempo;
+u8 requestClock; //0=false,  1=true,
 
 MIDI_NOTE notes[TRACK_COUNT][MAX_SEQ_LENGTH];
 MIDI_NOTE inputNotes[TRACK_COUNT];
+MIDI_NOTE notesBuffer[TRACK_COUNT];
+
 u8 octave[TRACK_COUNT];
 u8 channel[TRACK_COUNT];
 u8 seqLength[TRACK_COUNT];
 u8 midiPort[TRACK_COUNT];
 u8 stepSize[TRACK_COUNT];
 u8 drumTrack[TRACK_COUNT]; // 0 = keyboard, 1 = drumpads
+u8 drumMachine[TRACK_COUNT]; // 0=valca beats, 1 = volca sample, 2 = MPC...
 
 
 u8 trackContainsNotes(u8 i) {
@@ -58,6 +65,18 @@ void clearTrack(u8 trk) {
       clearTrackArm |= 1 << trk;
     }
   }
+}
+
+void deleteAllTracks() {
+
+    for (u8 i = 0; i < TRACK_COUNT; i++) {
+      if (trackContainsNotes(i)) {
+	      for (u8 j = 0; j < MAX_SEQ_LENGTH; j++) {
+	        notes[i][j].velocity = 0;
+	        notes[i][j].gate = GATE_FULL;
+	      }
+      }
+    }
 }
 
 void updateMidiPort(u8 trk, u8 mp) {
@@ -141,7 +160,6 @@ void updateRepeat() {
   }
 }
 
-//MK: modified for scenes
 void updateTrackMute(u8 trk) {
   if (trackMute[scene] & (1 << trk)) {
     trackMute[scene] &= ~(1 << trk);
@@ -191,7 +209,31 @@ void updateTrackStepSize(u8 trk, u8 stepSizeIndex) {
   }
 }
 
+void playLiveDrumNote(u8 index, u8 value, u8 machine) {
 
+	s8 note = indexToDrumNote(index,machine);
+
+	if (note >= 0) {
+		hal_send_midi(midiPort[track],
+				  (value ? NOTEON : NOTEOFF) + channel[track], note,
+				  value);
+	if (value) {
+	  inputNotes[track].value = note;
+	  inputNotes[track].velocity = value;
+	}
+
+    if (value) { // note on
+      hal_plot_led(TYPEPAD, index,
+                   velocityFade(CHANNEL_COLORS[channel[track]][0], value),
+                   velocityFade(CHANNEL_COLORS[channel[track]][1], value),
+                   velocityFade(CHANNEL_COLORS[channel[track]][2], value));
+    	}
+      else { // note off
+       hal_plot_led(TYPEPAD, index, DRUM_MACHINE_COLOR_R, DRUM_MACHINE_COLOR_G, DRUM_MACHINE_COLOR_B);
+      }
+
+	}
+}
 
 void playLiveNote(u8 index, u8 value) {
   s8 note = indexToNote(index);
@@ -239,17 +281,17 @@ void stopPlayedNote(u8 i) {
 }
 
 void onMidiReceive(u8 port, u8 status, u8 d1, u8 d2) {
-  u8 clockEvent = 0;
+  //u8 clockEvent = 0;
   if (status == MIDISTART) {
     for (u8 i = 0; i < TRACK_COUNT; i++) {
       seqDiv[i] = 0;
       seqPlayHeads[i] = seqLength[i] - 1;
     }
     seqPlay = 1;
-    clockEvent = 1;
+    //clockEvent = 1;
   } else if (status == MIDICONTINUE) {
     seqPlay = 1;
-    clockEvent = 1;
+    //clockEvent = 1;
   } else if (status == MIDISTOP) {
     updateLed(seqPlayHeads[track]);
 
@@ -257,13 +299,13 @@ void onMidiReceive(u8 port, u8 status, u8 d1, u8 d2) {
       stopPlayedNote(i);
     }
     seqPlay = 0;
-    clockEvent = 1;
+    //clockEvent = 1;
   } else if (status == SONGPOSITIONPOINTER) {
     for (u8 i = 0; i < TRACK_COUNT; i++) {
       seqDiv[i] = 0;
       seqPlayHeads[i] = d1 % seqLength[i] - 1;
     }
-    clockEvent = 1;
+    //clockEvent = 1;
   } else if (status == MIDITIMINGCLOCK) {
     if (seqPlay) {
       for (u8 i = 0; i < TRACK_COUNT; i++) {
@@ -271,10 +313,21 @@ void onMidiReceive(u8 port, u8 status, u8 d1, u8 d2) {
         u8 prevSeqPlayHead = seqPlayHeads[i];
         u8 prevPlayHead = !repeat || repeatPlayHeads[i] < 0 ? prevSeqPlayHead : repeatPlayHeads[i];
         u8 prevGate = notes[i][prevPlayHead].gate;
+        //u8 prevOffset = notes[i][prevPlayHead].offset;
+
+        // play note if offset is reached
+        //if (prevOffset && (prevOffset != GATE_TIE) && (seqDiv[i] == AVAILABLE_STEP_SIZES[stepSize[i]][currentNotes[i].offset])) {
+        //	 hal_send_midi(midiPort[i], NOTEON + channel[i], currentNotes[i].value, currentNotes[i].velocity);
+        //}
+
+        // stop note when gate value is reached
         if (prevGate != GATE_TIE
             && (seqDiv[i] == 0 || seqDiv[i] == AVAILABLE_STEP_SIZES[stepSize[i]][currentNotes[i].gate])) {
           stopPlayedNote(i);
         }
+
+
+
 
         if (seqDiv[i] == 0) {
           seqPlayHeads[i] = (seqPlayHeads[i] + 1) % seqLength[i];
@@ -291,10 +344,14 @@ void onMidiReceive(u8 port, u8 status, u8 d1, u8 d2) {
           }
 
           MIDI_NOTE note = notes[i][newPlayHead];
-          //MK: modified for scenes
           if (!(trackMute[scene] & (1 << i))) {
             if (note.velocity && (prevGate != GATE_TIE || note.value != currentNotes[i].value)) {
-              hal_send_midi(midiPort[i], NOTEON + channel[i], note.value, note.velocity);
+            	//if (note.offset==GATE_TIE || (!note.offset)) {
+            		//hal_send_midi(midiPort[i], NOTEON + channel[i], note.value, note.velocity);
+
+            		// put note to notebuffer
+            		notesBuffer[i] = note;
+            	//}
             }
             if (prevGate == GATE_TIE && (!note.velocity || note.value != currentNotes[i].value)) {
               stopPlayedNote(i);
@@ -318,19 +375,38 @@ void onMidiReceive(u8 port, u8 status, u8 d1, u8 d2) {
         }
         seqDiv[i] = (seqDiv[i] + 1) % AVAILABLE_STEP_SIZES[stepSize[i]][GATE_FULL];
       }
-      clockEvent = 1;
+      //clockEvent = 1;
     }
   }
 
   //MK: pass thru also other stuff than clock events
-
-  //if (clockEvent) {
+   //if (clockEvent) {
     for (u8 i = 0; i < 3; i++) {
       if (clockOut & (1 << i)) {
         hal_send_midi(i, status, d1, d2);
       }
     }
   //}
+
+}
+
+void playNotesInBuffer() {
+	// go
+    for (u8 i = 0; i < TRACK_COUNT; i++) {
+       MIDI_NOTE note = notesBuffer[i];
+
+       if (note.value) {
+    	 if (note.offset>0) {
+    		 note.offset= note.offset-1;
+    	 }
+    	 else {
+    	  hal_send_midi(midiPort[i], NOTEON + channel[i], note.value, note.velocity);
+    	  note.value = 0;
+    	 }
+		 notesBuffer[i] = note;
+      }
+    }
+
 }
 
 void handleInternalClock() {
@@ -339,25 +415,36 @@ void handleInternalClock() {
     break;
 
   case STARTING:
-    onMidiReceive(FAKE_PORT, MIDISTART, 0, 0);
+	if (requestClock==0) {
+		onMidiReceive(FAKE_PORT, MIDISTART, 0, 0);
+		}
+	else {
+		requestMidiClockStart(sysexMidiPort);
+	}
     clockState = PLAYING;
     break;
 
   case PLAYING:
-    if (clockDiv == 0) {
+    if (clockDiv == 0 && requestClock==0) {
       onMidiReceive(FAKE_PORT, MIDITIMINGCLOCK, 0, 0);
     }
     clockDiv = (clockDiv + 1) % AVAILABLE_TEMPI[tempo];
     break;
 
   case STOPPING:
-    onMidiReceive(FAKE_PORT, MIDISTOP, 0, 0);
+	if (requestClock==0) {
+		   onMidiReceive(FAKE_PORT, MIDISTOP, 0, 0);
+		}
+	else {
+		requestMidiClockStop(sysexMidiPort);
+	}
     clockDiv = 0;
     clockState = STOPPED;
     drawSetupMode();
     break;
   }
 }
+
 
 void initSequence() {
   seqPlay = 0;
@@ -368,19 +455,31 @@ void initSequence() {
   setupPage = EDIT;
   track = 0;
   scene = 0;
+  project = 255;
   stepRepeat = 0;
   repeatStart = -1;
   repeatLength = 0;
   clockDiv = 0;
+  trackRepeat = 0;
+  clockOut = 1;
+  tempo = 19; // index for 20ms
+  requestClock = 1; // use request midi as default
 
-  //MK: init trackmutes for all scenes
+  // set all scenes and their tracks to unmute by default
   for (u8 i=0; i<SCENE_COUNT;i++){
 	  trackMute[i] = 0;
   }
 
-  trackRepeat = 0;
-  clockOut = 1;
-  tempo = 19; // index for 20ms
+
+  // init notesbuffer
+  for (u8 i = 0; i < TRACK_COUNT; i++) {
+     MIDI_NOTE note;
+     note.value = 0;
+     note.velocity = 0;
+     note.gate = 0;
+     note.offset = 0;
+  	 notesBuffer[i] = note;
+    }
 
   for (u8 i = 0; i < TRACK_COUNT; i++) {
     seqPlayHeads[i] = seqLength[i] - 1;
