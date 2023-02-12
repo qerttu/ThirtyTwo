@@ -147,7 +147,7 @@ void loadLastSettings() {
   for (u8 i = 0; i < TRACK_COUNT; i++) {
     seqLength[i] = MAX_SEQ_LENGTH;
     inputNotes[i] = (MIDI_NOTE){.value = 60, .velocity = 100, .gate = GATE_FULL};
-    octave[i] = 3;
+    octave[i] = 0;
     channel[i] = i % 16;
     stepSize[i] = 2;
     midiPort[i] = i < 16 ? USBSTANDALONE : USBMIDI;

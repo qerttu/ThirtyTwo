@@ -1,6 +1,10 @@
 [![Build Status](https://travis-ci.org/dvhdr/launchpad-pro.svg?branch=master)](https://travis-ci.org/dvhdr/launchpad-pro)
 
 # My custom features
+1.15.0.4
+- New sequenced mode (Launchpad MK3 style)
+- Program change messages (0-32 at the moment) for scenes. Uses track 32 channel to send the messages to.
+
 
 1.10.0.3
 - Notes are now played by app_timer_event and not directly triggered by midi clock event. This allows using offsets to delay notes

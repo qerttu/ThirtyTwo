@@ -24,7 +24,7 @@ typedef struct {
 
 typedef enum { STOPPED, STARTING, PLAYING, STOPPING } CLOCK_STATE;
 
-typedef enum { EDIT, MUTE, REPEAT, SAVE, CLEAR, SEQ } SETUP_PAGE;
+typedef enum {SAVE, EDIT, SEQ, MUTE, CLEAR, REPEAT } SETUP_PAGE;
 
 static const u8 AVAILABLE_STEP_SIZES[8][7] = {//10% 25% 33% 50% 66% 75% 100%
                                                { 1,  1,  1,  2,  2,  2,  3},
@@ -57,8 +57,19 @@ extern u8 scene;
 //MK: added project
 extern u8 project;
 
+//MK: flag for arming record during playl tive
+extern u8 recordArm;
+
+//timer for offset during play time
+extern u32 offsetTimer;
+
+// flag for offset record during live record
+extern u8 offsetArm;
+
 //MK: added requestClock;
 extern u8 requestClock;
+
+
 
 extern u32 stepRepeat;
 extern s8 repeatStart;
@@ -82,6 +93,7 @@ extern u8 midiPort[TRACK_COUNT];
 extern u8 stepSize[TRACK_COUNT];
 extern u8 drumTrack[TRACK_COUNT]; // 0 = keyboard, 1 = drumpads
 extern u8 drumMachine[TRACK_COUNT]; // 0 = volca beats, 1 = volca sample, 2 = MPC
+extern u8 scene_pc[SCENE_COUNT]; // program change message for scene
 
 
 

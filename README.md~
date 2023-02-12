@@ -1,5 +1,22 @@
 [![Build Status](https://travis-ci.org/dvhdr/launchpad-pro.svg?branch=master)](https://travis-ci.org/dvhdr/launchpad-pro)
 
+# My custom features
+1.11.0
+- New sequencer mode, work in progress..
+
+
+1.10.0.3
+- Notes are now played by app_timer_event and not directly triggered by midi clock event. This allows using offsets to delay notes
+
+Previous versions
+- Added "scenes" (group mutes)
+- Added "projects" (integration via sysex with Teensy) 
+- Added following sysex commands: delete project, view project name, request scene tempo etc
+- Drumpads and mappings in mute screen for volca beats, mpc1000 jjos free, volca samples
+- JJos free / jjosxl2 conversion in midi channel 13
+- Program change message sends for scenes (for Elektron Model Samples)
+- Note offset (by ms)
+
 # Launchpad Pro
 Open source firmware for the Novation Launchpad Pro grid controller!  By customising this code, you can:
 

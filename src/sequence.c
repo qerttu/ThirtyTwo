@@ -13,6 +13,9 @@ SETUP_PAGE setupPage;
 u8 track;
 u8 scene;
 u8 project;
+u8 recordArm = 0;
+u32 offsetTimer = 0;
+u8 offsetArm = 0;
 
 u32 stepRepeat;
 s8 repeatStart;
@@ -40,6 +43,7 @@ u8 midiPort[TRACK_COUNT];
 u8 stepSize[TRACK_COUNT];
 u8 drumTrack[TRACK_COUNT]; // 0 = keyboard, 1 = drumpads
 u8 drumMachine[TRACK_COUNT]; // 0=valca beats, 1 = volca sample, 2 = MPC...
+u8 scene_pc[SCENE_COUNT];
 
 
 u8 trackContainsNotes(u8 i) {
@@ -220,6 +224,14 @@ void playLiveDrumNote(u8 index, u8 value, u8 machine) {
 	if (value) {
 	  inputNotes[track].value = note;
 	  inputNotes[track].velocity = value;
+
+	  if (recordArm>0) {
+		  notes[track][seqPlayHeads[track]] = inputNotes[track];
+		  notes[track][seqPlayHeads[track]].offset = 0;
+		  if (offsetArm>0) {
+			  notes[track][seqPlayHeads[track]].offset = offsetTimer;
+		  }
+	  }
 	}
 
     if (value) { // note on
@@ -288,6 +300,7 @@ void onMidiReceive(u8 port, u8 status, u8 d1, u8 d2) {
       seqPlayHeads[i] = seqLength[i] - 1;
     }
     seqPlay = 1;
+    offsetTimer = 0;
     //clockEvent = 1;
   } else if (status == MIDICONTINUE) {
     seqPlay = 1;
@@ -299,6 +312,8 @@ void onMidiReceive(u8 port, u8 status, u8 d1, u8 d2) {
       stopPlayedNote(i);
     }
     seqPlay = 0;
+    recordArm = 0;
+    offsetArm = 0;
     //clockEvent = 1;
   } else if (status == SONGPOSITIONPOINTER) {
     for (u8 i = 0; i < TRACK_COUNT; i++) {
@@ -330,6 +345,12 @@ void onMidiReceive(u8 port, u8 status, u8 d1, u8 d2) {
 
 
         if (seqDiv[i] == 0) {
+
+          // reset only based on active track
+          if (i==track) {
+        	  offsetTimer = 0;
+          }
+
           seqPlayHeads[i] = (seqPlayHeads[i] + 1) % seqLength[i];
           u8 newPlayHead;
           if (repeat) {
@@ -342,6 +363,7 @@ void onMidiReceive(u8 port, u8 status, u8 d1, u8 d2) {
           } else {
             newPlayHead = seqPlayHeads[i];
           }
+
 
           MIDI_NOTE note = notes[i][newPlayHead];
           if (!(trackMute[scene] & (1 << i))) {
@@ -452,7 +474,7 @@ void initSequence() {
   trackSelectStart = -1;
   trackSelectEnd = 0;
   clearTrackArm = 0;
-  setupPage = EDIT;
+  setupPage = MUTE;
   track = 0;
   scene = 0;
   project = 255;
@@ -465,10 +487,14 @@ void initSequence() {
   tempo = 19; // index for 20ms
   requestClock = 1; // use request midi as default
 
-  // set all scenes and their tracks to unmute by default
+
+  // MUTE all tracks in all scenes by default
+
   for (u8 i=0; i<SCENE_COUNT;i++){
-	  trackMute[i] = 0;
+	  trackMute[i] = -1;
   }
+  scene = 0;
+
 
 
   // init notesbuffer
@@ -487,4 +513,7 @@ void initSequence() {
     newStepSize[i] = -1;
     repeatPlayHeads[i] = -1;
   }
+
+  // initial screen load
+  drawSetupMode();
 }

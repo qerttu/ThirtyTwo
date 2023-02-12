@@ -63,6 +63,11 @@ void app_timer_event() {
   updatePressTimes();
   sendAllSysexData();
   playNotesInBuffer();
+
+  //increase offset timer in case playing
+  if (seqPlay==1 && recordArm) {
+  offsetTimer = offsetTimer +1;
+  }
 }
 
 void app_init(const u16 *adc_raw) {

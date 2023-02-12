@@ -75,7 +75,7 @@
 
 #define DRUM_MACHINE_COLOR_R 204
 #define DRUM_MACHINE_COLOR_G 0
-#define DRUM_MACHINE_COLOR_B 204
+#define DRUM_MACHINE_COLOR_B 102
 
 #define OFFSET_COLOR_R 0
 #define OFFSET_COLOR_G 31
@@ -88,15 +88,19 @@ static const u8 CHANNEL_COLORS[16][3] = {{63,  0,  0}, {63, 15,  0}, {63, 31,  0
                                          { 0, 63, 15}, { 0, 63, 31}, { 0, 63, 63}, { 0, 31, 63},
                                          { 0,  0, 63}, {15,  0, 31}, {31,  0, 31}, {31,  0, 15}};
 
-static const u8 SEQ_INDEXES[32] = {95, 96, 97, 98, 89, 79, 69, 59,
+extern u8 SEQ_INDEXES[32];
+
+static const u8 SEQ_INDEXES_RND[32] = {95, 96, 97, 98, 89, 79, 69, 59,
                                    49, 39, 29, 19,  8,  7,  6,  5,
                                     4,  3,  2,  1, 10, 20, 30, 40,
                                    50, 60, 70, 80, 91, 92, 93, 94};
 
-static const u8 SEQ_INDEXES_2[32] = {81, 82, 83, 84, 85, 86, 87, 88,
+static const u8 SEQ_INDEXES_SQR[32] = {81, 82, 83, 84, 85, 86, 87, 88,
                                    71, 72, 73, 74, 75, 76, 77, 78,
                                     61,  62,  63,  64, 65, 66, 67, 68,
                                    51, 52, 53, 54, 55, 56, 57, 58};
+
+static const u8 SCENE_INDEXES[6] = {46,47,48,36,37,38};
 
 
 static const u8 KEYS_INDEXES[12] = {11, 22, 12, 23, 13, 14, 25, 15, 26, 16, 27, 17};
@@ -123,7 +127,7 @@ static const u8 MPC_INDEXES[16] = {21, 22, 23, 24, 25, 26, 27, 28, 31, 32, 33, 3
 
 static const u8 MPC2_NOTES[16] = {36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51};
 
-static const u8 MPC2_INDEXES[16] = {21, 22, 23, 24, 25, 26, 27, 28, 31, 32, 33, 34, 35, 36, 37, 38};
+static const u8 MPC2_INDEXES[16] = {11, 12, 13, 14, 21, 22, 23, 24, 31, 32, 33, 34, 41, 42, 43, 44};
 
 extern u8 sysexMidiPort;
 
@@ -145,6 +149,8 @@ u8 velocityFade(u8 led, u8 velocity);
 
 void clearRect(u8 x1, u8 y1, u8 x2, u8 y2);
 
+void clearRoundedPads();
+
 void drawNotePads();
 
 void drawSetupMode();
@@ -165,6 +171,8 @@ void drawSeqSteps();
 void onSeqTouch(u8 index, u8 value);
 
 void onTrackSettingsGridTouch(u8 index, u8 value);
+
+void onScenePCGridTouch(u8 index, u8 value);
 
 void onSetupGridTouch(u8 index, u8 value);
 
