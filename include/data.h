@@ -3,7 +3,7 @@
 
 #include "app_defs.h"
 
-#define VERSION "1.14.01"
+#define VERSION "1.16.1"
 #define TRACK_SETTINGS_SIZE 5
 #define SYSEX_U32_SIZE 5
 #define GLOBAL_SETTINGS_SIZE 10 // 2 * SYSEX_U32_SIZE

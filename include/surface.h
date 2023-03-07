@@ -100,7 +100,7 @@ static const u8 SEQ_INDEXES_SQR[32] = {81, 82, 83, 84, 85, 86, 87, 88,
                                     61,  62,  63,  64, 65, 66, 67, 68,
                                    51, 52, 53, 54, 55, 56, 57, 58};
 
-static const u8 SCENE_INDEXES[6] = {46,47,48,36,37,38};
+static const u8 SCENE_INDEXES[8] = {45,46,47,48,35,36,37,38};
 
 
 static const u8 KEYS_INDEXES[12] = {11, 22, 12, 23, 13, 14, 25, 15, 26, 16, 27, 17};

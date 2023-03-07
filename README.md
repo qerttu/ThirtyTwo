@@ -1,6 +1,9 @@
 [![Build Status](https://travis-ci.org/dvhdr/launchpad-pro.svg?branch=master)](https://travis-ci.org/dvhdr/launchpad-pro)
 
 # My custom features
+1.16.0.1
+- added two more scenes (now total of eight)
+
 1.15.0.4
 - New sequencer mode (Launchpad MK3 style)
 - Program change messages (0-31 at the moment) for scenes. Uses track 32 channel to send the messages to.

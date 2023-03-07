@@ -5,7 +5,7 @@
 
 #define TRACK_COUNT 32
 #define MAX_SEQ_LENGTH 32
-#define SCENE_COUNT 6
+#define SCENE_COUNT 8
 #define PROJECT_COUNT 32
 #define DRUMPAD_COUNT 16
 

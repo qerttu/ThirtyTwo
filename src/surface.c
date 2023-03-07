@@ -346,10 +346,10 @@ void drawSetupMode() {
 
     //MK: muteTrackSelect button
 	if (muteTrackSelect >0) {
-		hal_plot_led(TYPEPAD, 45, CLOCK_STATE_COLOR_R, CLOCK_STATE_COLOR_G, CLOCK_STATE_COLOR_B);
+		hal_plot_led(TYPEPAD, 15, CLOCK_STATE_COLOR_R, CLOCK_STATE_COLOR_G, CLOCK_STATE_COLOR_B);
 	}
 		else {
-		hal_plot_led(TYPEPAD, 45, CLOCK_STATE_COLOR_R >> 3, CLOCK_STATE_COLOR_G >> 3, CLOCK_STATE_COLOR_B >> 3);
+		hal_plot_led(TYPEPAD, 15, CLOCK_STATE_COLOR_R >> 3, CLOCK_STATE_COLOR_G >> 3, CLOCK_STATE_COLOR_B >> 3);
 	}
 
 	//MK: drum mode buttons
@@ -936,7 +936,6 @@ void onSetupGridTouch(u8 index, u8 value) {
 	  setupPage = index - 25;
 
 	  if (setupPage == CLEAR) {
-		clearTrackArm = 0;
 	  }
 
 
@@ -1029,13 +1028,13 @@ void onSetupGridTouch(u8 index, u8 value) {
 	}
 
 	//MK: mute track select
-	if (index==45) {
+	if (index==15) {
 		muteTrackSelect=value;
 	}
 
 
 	//MK: scene buttons
-	if (value && ((index >= 36 && index <= 38) || (index >= 46 && index <=48))) {
+	if (value && ((index >= 35 && index <= 38) || (index >= 45 && index <=48))) {
 		// set scene
 
 	    for (u8 i = 0; i < sizeof(SCENE_INDEXES); i++) {
@@ -1056,10 +1055,10 @@ void onSetupGridTouch(u8 index, u8 value) {
 
 	// change color of the mute track select if pressed
 	if (muteTrackSelect >0) {
-		hal_plot_led(TYPEPAD, 45, CLOCK_STATE_COLOR_R, CLOCK_STATE_COLOR_G, CLOCK_STATE_COLOR_B);
+		hal_plot_led(TYPEPAD, 15, CLOCK_STATE_COLOR_R, CLOCK_STATE_COLOR_G, CLOCK_STATE_COLOR_B);
 	}
 		else {
-		hal_plot_led(TYPEPAD, 45, CLOCK_STATE_COLOR_R >> 3, CLOCK_STATE_COLOR_G >> 3, CLOCK_STATE_COLOR_B >> 3);
+		hal_plot_led(TYPEPAD, 15, CLOCK_STATE_COLOR_R >> 3, CLOCK_STATE_COLOR_G >> 3, CLOCK_STATE_COLOR_B >> 3);
 	}
 
 
@@ -1329,7 +1328,7 @@ void onSetupGridTouch(u8 index, u8 value) {
       toggleClockOutPort(index - 11);
       drawSetupMode();
     }
-    else if ((index >= 36 && index <= 38) || (index >= 46 && index <=48)) { // scene buttons press
+    else if ((index >= 35 && index <= 38) || (index >= 45 && index <=48)) { // scene buttons press
     	if (value) {
     		for (u8 i = 0; i < SCENE_COUNT; i++) {
     			if (SCENE_INDEXES[i] == index) {
