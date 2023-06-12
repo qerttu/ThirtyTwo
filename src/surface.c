@@ -264,7 +264,31 @@ void drawSetupMode() {
   switch (setupPage) {
   case MUTE:
 
-	// draw each row in different color
+	    //MK: muteTrackSelect button
+		if (muteTrackSelect >0) {
+
+			clearRect(1, 1, 4, 4);
+
+			// highlight muteSelect button
+			hal_plot_led(TYPEPAD, 15, CLOCK_STATE_COLOR_R, CLOCK_STATE_COLOR_G, CLOCK_STATE_COLOR_B);
+
+			//highlight tracks with channel color & have data
+		    for (u8 i = 0; i < TRACK_COUNT; i++) {
+		      if (trackContainsNotes(i)) {
+		        hal_plot_led(TYPEPAD, 81 + i - 18 * (i / 8), CHANNEL_COLORS[channel[i]][0], CHANNEL_COLORS[channel[i]][1],
+		                     CHANNEL_COLORS[channel[i]][2]);
+		      }
+			  if (i==track) {
+			        hal_plot_led(TYPEPAD, 81 + i - 18 * (i / 8), WHITE_KEY_COLOR_R,
+			                                      	  	  	  	 WHITE_KEY_COLOR_G,
+			                                      	  	  	  	 WHITE_KEY_COLOR_B);
+			  }
+		     }
+
+		}
+			else {
+
+	// draw each track row in different color
 		for (u8 i = 0; i < TRACK_COUNT; i++) {
 
 			if (trackMute[scene] & (1 << i)) {
@@ -292,6 +316,10 @@ void drawSetupMode() {
 			  }
 		  }
 		}
+
+		// mute select button default
+		hal_plot_led(TYPEPAD, 15, CLOCK_STATE_COLOR_R >> 3, CLOCK_STATE_COLOR_G >> 3, CLOCK_STATE_COLOR_B >> 3);
+	}
 
 
 	//changed to match the channel color
@@ -326,7 +354,6 @@ void drawSetupMode() {
 	*/
 
     //MK: scene buttons, in 3x2 matrix
-
     for (u8 i = 0; i < sizeof(SCENE_INDEXES); i++) {
 
 		if (i==scene) {
@@ -343,14 +370,6 @@ void drawSetupMode() {
 
     }
 
-
-    //MK: muteTrackSelect button
-	if (muteTrackSelect >0) {
-		hal_plot_led(TYPEPAD, 15, CLOCK_STATE_COLOR_R, CLOCK_STATE_COLOR_G, CLOCK_STATE_COLOR_B);
-	}
-		else {
-		hal_plot_led(TYPEPAD, 15, CLOCK_STATE_COLOR_R >> 3, CLOCK_STATE_COLOR_G >> 3, CLOCK_STATE_COLOR_B >> 3);
-	}
 
 	//MK: drum mode buttons
 	if (drumTrack[track]) {
@@ -507,6 +526,23 @@ void drawSetupMode() {
 
 	   // track select
 		if (muteTrackSelect >0) {
+
+			clearRect(1, 1, 4, 4);
+
+
+			//highlight tracks with channel color & have data
+		    for (u8 i = 0; i < TRACK_COUNT; i++) {
+		      if (trackContainsNotes(i)) {
+		        hal_plot_led(TYPEPAD, 81 + i - 18 * (i / 8), CHANNEL_COLORS[channel[i]][0], CHANNEL_COLORS[channel[i]][1],
+		                     CHANNEL_COLORS[channel[i]][2]);
+		      }
+			  if (i==track) {
+			        hal_plot_led(TYPEPAD, 81 + i - 18 * (i / 8), WHITE_KEY_COLOR_R,
+			                                      	  	  	  	 WHITE_KEY_COLOR_G,
+			                                      	  	  	  	 WHITE_KEY_COLOR_B);
+			  }
+		     }
+
 			hal_plot_led(TYPEPAD, 80, CLOCK_STATE_COLOR_R, CLOCK_STATE_COLOR_G, CLOCK_STATE_COLOR_B);
 		}
 			else {
@@ -1030,6 +1066,7 @@ void onSetupGridTouch(u8 index, u8 value) {
 	//MK: mute track select
 	if (index==15) {
 		muteTrackSelect=value;
+		drawSetupMode();
 	}
 
 
@@ -1239,14 +1276,8 @@ void onSetupGridTouch(u8 index, u8 value) {
 	//MK: mute track select
 	if (index==80) {
 		muteTrackSelect=value;
-	}
+		drawSetupMode();
 
-	// change color of the mute track select if pressed
-	if (muteTrackSelect >0) {
-		hal_plot_led(TYPEPAD, 80, CLOCK_STATE_COLOR_R, CLOCK_STATE_COLOR_G, CLOCK_STATE_COLOR_B);
-	}
-		else {
-		hal_plot_led(TYPEPAD, 80, CLOCK_STATE_COLOR_R >> 3, CLOCK_STATE_COLOR_G >> 3, CLOCK_STATE_COLOR_B >> 3);
 	}
 
 
@@ -1312,7 +1343,15 @@ void onSetupGridTouch(u8 index, u8 value) {
 
 
 	  //drawSetupMode();
-	  drawSeqSteps();
+		// change color of the mute track select if pressed
+		if (muteTrackSelect >0) {
+			hal_plot_led(TYPEPAD, 80, CLOCK_STATE_COLOR_R, CLOCK_STATE_COLOR_G, CLOCK_STATE_COLOR_B);
+		}
+			else {
+			hal_plot_led(TYPEPAD, 80, CLOCK_STATE_COLOR_R >> 3, CLOCK_STATE_COLOR_G >> 3, CLOCK_STATE_COLOR_B >> 3);
+			drawSeqSteps();
+		}
+
 	  break;
 
   case EDIT:
