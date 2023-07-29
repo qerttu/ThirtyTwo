@@ -11,6 +11,7 @@ u8 setupMode = 1;
 u8 setupButtonPressed = 0;
 u8 tempoSelect = 0;
 u8 muteTrackSelect = 0;
+u8 midiTrackSelect = 0;
 u8 sysexMidiPort = USBSTANDALONE;
 u8 saveSelect = 0;
 u8 loadSelect = 0;
@@ -533,13 +534,12 @@ void drawSetupMode() {
 			//highlight tracks with channel color & have data
 		    for (u8 i = 0; i < TRACK_COUNT; i++) {
 		      if (trackContainsNotes(i)) {
-		        hal_plot_led(TYPEPAD, 81 + i - 18 * (i / 8), CHANNEL_COLORS[channel[i]][0], CHANNEL_COLORS[channel[i]][1],
-		                     CHANNEL_COLORS[channel[i]][2]);
+		        hal_plot_led(TYPEPAD, 81 + i - 18 * (i / 8), CHANNEL_COLORS[channel[i]][0] >> 3, CHANNEL_COLORS[channel[i]][1] >> 3,
+		                     CHANNEL_COLORS[channel[i]][2] >> 3);
 		      }
 			  if (i==track) {
-			        hal_plot_led(TYPEPAD, 81 + i - 18 * (i / 8), WHITE_KEY_COLOR_R,
-			                                      	  	  	  	 WHITE_KEY_COLOR_G,
-			                                      	  	  	  	 WHITE_KEY_COLOR_B);
+			        hal_plot_led(TYPEPAD, 81 + i - 18 * (i / 8), CHANNEL_COLORS[channel[i]][0], CHANNEL_COLORS[channel[i]][1],
+			                     CHANNEL_COLORS[channel[i]][2]);
 			  }
 		     }
 
@@ -549,8 +549,24 @@ void drawSetupMode() {
 			hal_plot_led(TYPEPAD, 80, CLOCK_STATE_COLOR_R >> 3, CLOCK_STATE_COLOR_G >> 3, CLOCK_STATE_COLOR_B >> 3);
 		}
 
+		// midi and track length select
+		if (midiTrackSelect>0) {
+
+		  // track channel
+		  for (u8 i = 0; i < 16; i++) {
+			if (channel[track] == i) {
+			  hal_plot_led(TYPEPAD, 41 + i - 18 * (i / 8), CHANNEL_COLORS[i][0], CHANNEL_COLORS[i][1], CHANNEL_COLORS[i][2]);
+			} else {
+			  hal_plot_led(TYPEPAD, 41 + i - 18 * (i / 8), CHANNEL_COLORS[i][0] >> 3, CHANNEL_COLORS[i][1] >> 3, CHANNEL_COLORS[i][2] >> 3);
+			}
+		  }
+
+		}
+
+
+
 	  // draw drumpads
-		if (drumTrack[track]) {
+		if ((muteTrackSelect ==0 && (midiTrackSelect==0)) ) {
 			for (u8 i = 0; i < 4; i++) {
 				for (u8 j = 0; j < 4; j++) {
 				  hal_plot_led(TYPEPAD, 11 + i * 10 + j, DRUM_MACHINE_COLOR_R, DRUM_MACHINE_COLOR_G, DRUM_MACHINE_COLOR_B);
@@ -574,6 +590,7 @@ void drawSetupMode() {
 		    }
 		  }
 		}
+
 	  // draw octave
 		for (u8 i = 0; i < 5; i++) {
 		 if (i==octave[track]+1)
@@ -1266,12 +1283,24 @@ void onSetupGridTouch(u8 index, u8 value) {
 
 
 
+
 	//MK: if mute track select pressed
 	if (value && index >= 51 && index <= 88 && (muteTrackSelect>0)) {
 		  track = 63 + index - 18 * (index / 10);
 		  drawSeqSteps();
 		  drawSetupMode();
 	}
+
+	// if midi track select pressed
+	if (value && index >= 31 && index <=48 && (midiTrackSelect>0)) {
+		    trackSelectStart = track;
+		    trackSelectEnd = track;
+			onTrackSettingsGridTouch(index, value);
+		    drawSeqSteps();
+		    drawSetupMode();
+	}
+
+
 
 	//MK: mute track select
 	if (index==80) {
@@ -1280,9 +1309,15 @@ void onSetupGridTouch(u8 index, u8 value) {
 
 	}
 
+	// midi track select
+	if (index==70) {
+		midiTrackSelect=value;
+		drawSetupMode();
 
-	// drum mode buttons
-	if ((index >=11 && index <=14) || (index >=21 && index <=24) || (index >=31 && index <=34) || (index >=41 && index <=44)) {
+	}
+
+     if (midiTrackSelect==0) {
+	  if ((index >=11 && index <=14) || (index >=21 && index <=24) || (index >=31 && index <=34) || (index >=41 && index <=44)) {
 
 		// if steps are pressed
 		if (stepPress) { // step record
@@ -1310,8 +1345,10 @@ void onSetupGridTouch(u8 index, u8 value) {
 			  playLiveDrumNote(index, value,drumMachine[track]);
 			}
 
-		}
+		  }
+       }
 
+	  	//octave
 		if (index==40 || index==30 || index==20 || index==10) {
 			u8 newOctave = ((index / 10)-1);
 			octave[track] = newOctave;
@@ -1329,7 +1366,7 @@ void onSetupGridTouch(u8 index, u8 value) {
 			drawSetupMode();
 	  }
 
-	//track arm
+	//track arm offset
 	  if(value && index == 2)  {
 			if (offsetArm==0) {
 				offsetArm=1;
@@ -1342,13 +1379,29 @@ void onSetupGridTouch(u8 index, u8 value) {
 
 
 
-	  //drawSetupMode();
 		// change color of the mute track select if pressed
 		if (muteTrackSelect >0) {
 			hal_plot_led(TYPEPAD, 80, CLOCK_STATE_COLOR_R, CLOCK_STATE_COLOR_G, CLOCK_STATE_COLOR_B);
 		}
 			else {
 			hal_plot_led(TYPEPAD, 80, CLOCK_STATE_COLOR_R >> 3, CLOCK_STATE_COLOR_G >> 3, CLOCK_STATE_COLOR_B >> 3);
+		}
+
+		// change color of the midi tack select if pressed
+		if (midiTrackSelect >0) {
+			hal_plot_led(TYPEPAD, 70, CLOCK_STATE_COLOR_MIDI_R, CLOCK_STATE_COLOR_MIDI_G, CLOCK_STATE_COLOR_MIDI_B);
+		}
+			else {
+			hal_plot_led(TYPEPAD, 70, CLOCK_STATE_COLOR_MIDI_R >> 3, CLOCK_STATE_COLOR_MIDI_G >> 3, CLOCK_STATE_COLOR_MIDI_B >> 3);
+		}
+
+		if ((midiTrackSelect==0)) {
+			trackSelectStart = -1;
+			drawSetupMode();
+		}
+
+		// if no select button is selected, draw steps
+		if ((muteTrackSelect==0)) {
 			drawSeqSteps();
 		}
 
