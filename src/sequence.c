@@ -405,7 +405,18 @@ void onMidiReceive(u8 port, u8 status, u8 d1, u8 d2) {
    //if (clockEvent) {
     for (u8 i = 0; i < 3; i++) {
       if (clockOut & (1 << i)) {
+
+
+      //TOBETESTED
+      // if recording on, trigger playLiveNOte function
+      if (recordArm > 0) {
+    	  s8 index = noteToIndex(d1);
+    	  playLiveDrumNote(index,d2,drumMachine[track]);
+       }
+      // else pass through as is
+       else {
         hal_send_midi(i, status, d1, d2);
+       }
       }
     }
   //}

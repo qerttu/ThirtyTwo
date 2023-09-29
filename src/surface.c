@@ -969,9 +969,17 @@ void onTrackSettingsGridTouch(u8 index, u8 value) {
 void onScenePCGridTouch(u8 index, u8 value) {
 	if (value && index >= 51 && index <= 88 && sceneSelect>0) {
 		// set PC
-		scene_pc[sceneSelect-1] = 64 + index - 18 * (index / 10);
-		// send PC as well
-		hal_send_midi(midiPort[TRACK_COUNT-1],PC + channel[TRACK_COUNT-1],scene_pc[sceneSelect-1],0);
+
+		// check if value already set, then assign it as 255 (not set)
+		if (scene_pc[sceneSelect-1]==(64 + index - 18 * (index / 10))) {
+			scene_pc[sceneSelect-1] = 255;
+		}
+		else {
+			// add pc number as PC value
+			scene_pc[sceneSelect-1] = 64 + index - 18 * (index / 10);
+			// send PC as well
+			hal_send_midi(midiPort[TRACK_COUNT-1],PC + channel[TRACK_COUNT-1],scene_pc[sceneSelect-1],0);
+		}
 	}
 	drawSetupMode();
 }
@@ -1104,7 +1112,8 @@ void onSetupGridTouch(u8 index, u8 value) {
 		requestSceneTempo(sysexMidiPort, scene);
 
 		//send program change (last track port and channel)
-		hal_send_midi(midiPort[TRACK_COUNT-1],PC + channel[TRACK_COUNT-1],scene_pc[scene],0);
+		if (scene_pc[scene] && (scene_pc[scene] < 255))
+			hal_send_midi(midiPort[TRACK_COUNT-1],PC + channel[TRACK_COUNT-1],scene_pc[scene],0);
 	}
 
 	// change color of the mute track select if pressed
@@ -1597,8 +1606,8 @@ void sendAllSysexData() {
 				  sendStartMessage(sysexMidiPort);
 			  }
 
-			  // send track data
-			  if (trackContainsNotes(tr_sysex)) {
+			  // send track data and also last track in order to include PC messages midi channel
+			  if (trackContainsNotes(tr_sysex) || (tr_sysex==(TRACK_COUNT-1))) {
 				  sendTrackData(sysexMidiPort, tr_sysex);
 			  }
 
@@ -1609,9 +1618,12 @@ void sendAllSysexData() {
 				  // send global settings
 				  sendGlobalSettingsData(sysexMidiPort);
 
-				  // send trackmute data
+				  // send trackmute and PC data per scene
 				  for (u8 i=0; i<SCENE_COUNT;i++){
 					  sendTrackMuteData(sysexMidiPort,i);
+					  if (scene_pc[i] && scene_pc[i] < 255) {
+						  sendScenePC(sysexMidiPort,i);
+					  }
 				  }
 
 

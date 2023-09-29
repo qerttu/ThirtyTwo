@@ -1,6 +1,12 @@
 [![Build Status](https://travis-ci.org/dvhdr/launchpad-pro.svg?branch=master)](https://travis-ci.org/dvhdr/launchpad-pro)
 
 # My custom features
+1.18.2
+- midi and track length select in sequence mode
+
+1.17.3
+- highlight tracks with channel color if data exists
+
 1.16.0.1
 - added two more scenes (now total of eight)
 
