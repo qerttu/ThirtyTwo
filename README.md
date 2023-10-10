@@ -1,6 +1,9 @@
 [![Build Status](https://travis-ci.org/dvhdr/launchpad-pro.svg?branch=master)](https://travis-ci.org/dvhdr/launchpad-pro)
 
 # My custom features
+1.19.7
+- Two set of PCs for scenes (in progress)
+
 1.19.4
 - Sysex export for scene Program Change messages 
 - sequence real time record to support external midi (not working yet)

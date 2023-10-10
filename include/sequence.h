@@ -93,7 +93,11 @@ extern u8 midiPort[TRACK_COUNT];
 extern u8 stepSize[TRACK_COUNT];
 extern u8 drumTrack[TRACK_COUNT]; // 0 = keyboard, 1 = drumpads
 extern u8 drumMachine[TRACK_COUNT]; // 0 = volca beats, 1 = volca sample, 2 = MPC
-extern u8 scene_pc[SCENE_COUNT]; // program change message for scene
+extern u8 scene_pc[SCENE_COUNT+SCENE_COUNT]; // program change message for scene
+extern u8 current_pc; // current pc
+extern u8 current_pc; // current program, set 1
+extern u8 current_pc2; // current program, set 2
+extern u8 pc_set; // pc screens
 
 
 
