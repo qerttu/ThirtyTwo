@@ -412,9 +412,9 @@ void onMidiReceive(u8 port, u8 status, u8 d1, u8 d2) {
 
       //TOBETESTED
       // if recording on, trigger playLiveNOte function
-      if (recordArm > 0) {
-    	  s8 index = noteToIndex(d1);
-    	  playLiveDrumNote(index,d2,drumMachine[track]);
+      if (recordArm > 0 && ((status==NOTEON || status==NOTEOFF))) {
+    		  s8 index = noteToIndex(d1);
+    		  playLiveDrumNote(index,d2,drumMachine[track]);
        }
       // else pass through as is
        else {
