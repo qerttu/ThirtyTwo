@@ -1112,7 +1112,7 @@ void onSetupGridTouch(u8 index, u8 value) {
 		requestSceneTempo(sysexMidiPort, scene);
 
 		//send program change (last track port and channel)
-		if (scene_pc[scene] && (scene_pc[scene] < 255) && (current_pc!=scene_pc[scene])) {
+		if ((seqPlay<1) || (scene_pc[scene] && (scene_pc[scene] < 255) && (current_pc!=scene_pc[scene]))) {
 			// send PC
 			hal_send_midi(midiPort[TRACK_COUNT-1],PC + channel[TRACK_COUNT-1],scene_pc[scene],0);
 

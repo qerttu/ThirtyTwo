@@ -318,6 +318,14 @@ void sendTrackMuteData(u8 port, u8 mt) {
 }
 
 void loadProject(u8 port, u8 pt) {
+
+	// clean PC's for scenes
+	  for (u8 i=0; i<SCENE_COUNT;i++){
+		  // clear PC's for scenes
+		  scene_pc[i] = 255;
+		  scene_pc[i+SCENE_COUNT] = 255;
+	  }
+
 	  u8 data[8];
 	  data[0] = 0xF0;
 	  // 00H 20H 29H -> Focusrite/Novation manufacturer ID

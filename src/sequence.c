@@ -503,13 +503,16 @@ void initSequence() {
 
 
   // MUTE all tracks in all scenes by default
-
   for (u8 i=0; i<SCENE_COUNT;i++){
+
+	  // MUTE all tracks in scene
 	  trackMute[i] = -1;
+
+	  // clear PC's for scenes
+	  scene_pc[i] = 255;
+	  scene_pc[i+SCENE_COUNT] = 255;
   }
   scene = 0;
-
-
 
   // init notesbuffer
   for (u8 i = 0; i < TRACK_COUNT; i++) {
@@ -521,12 +524,14 @@ void initSequence() {
   	 notesBuffer[i] = note;
     }
 
+  // sequence default values
   for (u8 i = 0; i < TRACK_COUNT; i++) {
     seqPlayHeads[i] = seqLength[i] - 1;
     currentNotes[i] = (MIDI_NOTE){.value = 0, .velocity = 0, .gate = 0};
     newStepSize[i] = -1;
     repeatPlayHeads[i] = -1;
   }
+
 
   // initial screen load
   drawSetupMode();

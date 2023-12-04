@@ -1,6 +1,12 @@
 [![Build Status](https://travis-ci.org/dvhdr/launchpad-pro.svg?branch=master)](https://travis-ci.org/dvhdr/launchpad-pro)
 
 # My custom features
+1.19.9
+- added init sequnence (with cleaning PC values) for project load
+
+1.19.8
+- real time record work progress
+
 1.19.7
 - Two set of PCs for scenes (in progress)
 
