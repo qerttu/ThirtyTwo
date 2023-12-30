@@ -136,6 +136,8 @@ void playLiveNote(u8 index, u8 value);
 
 void playLiveDrumNote(u8 index, u8 value, u8 machine);
 
+void playMidiNote(u8 status, u8 note, u8 value);
+
 void stopPlayedNote(u8 i);
 
 void onMidiReceive(u8 port, u8 status, u8 d1, u8 d2);

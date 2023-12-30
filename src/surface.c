@@ -4,6 +4,9 @@
 #include "sequence.h"
 #include "data.h"
 
+// CC sends for debugging
+//#define DEBUG
+
 u32 stepPress = 0;
 u16 stepPressTimes[MAX_SEQ_LENGTH] = {0};
 u16 settingsSlotPressTimes[8] = {0};
@@ -17,6 +20,7 @@ u8 saveSelect = 0;
 u8 loadSelect = 0;
 u8 deleteSelect = 0;
 u8 sceneSelect = 0;
+u8 sceneShift = 0;
 
 // MK: status for sendSysex time function
 u8 sendSysex = 0;
@@ -72,6 +76,11 @@ s8 noteToDrumIndex(u8 note, u8 machine) {
 }
 
 s8 noteToIndex(u8 note) {
+
+	#ifdef DEBUG
+	 hal_send_midi(DINMIDI, CC, 3, note);
+	#endif
+
   if (drumTrack[track]) {
     u8 noteOctave = note / 16;
     u8 relNote = note % 16;
@@ -617,28 +626,41 @@ void drawSetupMode() {
   case EDIT:
   default:
 
-
-	//track colors
-   if (sceneSelect>0) {
-	   for (u8 i = 0; i < TRACK_COUNT; i++) {
-		  if (scene_pc[sceneSelect-1]==i+1) {
-			  hal_plot_led(TYPEPAD, 81 + i - 18 * (i / 8), WHITE_KEY_COLOR_R, WHITE_KEY_COLOR_G,
-					  WHITE_KEY_COLOR_B);
-		  }
-	   }
-   }
-   else {
+   // track area
     for (u8 i = 0; i < TRACK_COUNT; i++) {
-      if (track == i) {
-        hal_plot_led(TYPEPAD, 81 + i - 18 * (i / 8), CHANNEL_COLORS[channel[i]][0], CHANNEL_COLORS[channel[i]][1],
-                     CHANNEL_COLORS[channel[i]][2]);
-      } else if (trackSelectStart < 0 || (trackSelectStart <= i && i <= trackSelectEnd)) {
-        hal_plot_led(TYPEPAD, 81 + i - 18 * (i / 8), CHANNEL_COLORS[channel[i]][0] >> 3, CHANNEL_COLORS[channel[i]][1] >> 3,
-                     CHANNEL_COLORS[channel[i]][2] >> 3);
-      }
-     }
-    }
 
+	   // scene PC's
+	   if (sceneSelect>0) {
+		  if (sceneShift) {
+			  if (scene_pc[sceneSelect+SCENE_COUNT-1]==i+1) {
+				  hal_plot_led(TYPEPAD, 81 + i - 18 * (i / 8), SCENE_2_R, SCENE_2_G,
+						  SCENE_2_B);
+			  }
+		  }
+		  else {
+			  if(scene_pc[sceneSelect-1]==i+1) {
+				  hal_plot_led(TYPEPAD, 81 + i - 18 * (i / 8), SCENE_1_R, SCENE_1_G,
+						  SCENE_1_B);
+			  }
+    	 }
+	   }
+
+	   // track colors
+	   else {
+		for (u8 i = 0; i < TRACK_COUNT; i++) {
+		  if (track == i) {
+			hal_plot_led(TYPEPAD, 81 + i - 18 * (i / 8), CHANNEL_COLORS[channel[i]][0], CHANNEL_COLORS[channel[i]][1],
+						 CHANNEL_COLORS[channel[i]][2]);
+		  } else if (trackSelectStart < 0 || (trackSelectStart <= i && i <= trackSelectEnd)) {
+			hal_plot_led(TYPEPAD, 81 + i - 18 * (i / 8), CHANNEL_COLORS[channel[i]][0] >> 3, CHANNEL_COLORS[channel[i]][1] >> 3,
+						 CHANNEL_COLORS[channel[i]][2] >> 3);
+		  }
+		 }
+	   }
+	  }
+
+
+    // track specific configurations,e.g midi channels etc
     if (trackSelectStart >= 0) {
       // track channel
       for (u8 i = 0; i < 16; i++) {
@@ -715,6 +737,16 @@ void drawSetupMode() {
  		}
 
      }
+
+		 // scene shift button
+		if (sceneShift) {
+			hal_plot_led(TYPEPAD, 44, SCENE_2_R,SCENE_2_G,SCENE_2_B);
+		}
+		else
+		{
+			hal_plot_led(TYPEPAD, 44, SCENE_2_R >> 3,SCENE_2_G >> 3,SCENE_2_B >> 3);
+		}
+
 
       // MIDI clock out
       for (u8 i = 0; i < 3; i++) {
@@ -972,13 +1004,27 @@ void onScenePCGridTouch(u8 index, u8 value) {
 
 		// check if value already set, then assign it as 255 (not set)
 		if (scene_pc[sceneSelect-1]==(64 + index - 18 * (index / 10))) {
-			scene_pc[sceneSelect-1] = 255;
+			if (sceneShift) {
+				scene_pc[SCENE_COUNT+sceneSelect-1] = 255;
+			}
+			else {
+				scene_pc[sceneSelect-1] = 255;
+			}
 		}
 		else {
-			// add pc number as PC value
-			scene_pc[sceneSelect-1] = 64 + index - 18 * (index / 10);
-			// send PC as well
-			hal_send_midi(midiPort[TRACK_COUNT-1],PC + channel[TRACK_COUNT-1],scene_pc[sceneSelect-1],0);
+
+			if (sceneShift) {
+				// add pc number as PC value
+				scene_pc[SCENE_COUNT+sceneSelect-1] = 64 + index - 18 * (index / 10);
+				// send PC's as well
+				hal_send_midi(midiPort[TRACK_COUNT-2],PC + channel[TRACK_COUNT-2],scene_pc[SCENE_COUNT+sceneSelect-1],0);
+			}
+			else {
+				// add pc number as PC value
+				scene_pc[sceneSelect-1] = 64 + index - 18 * (index / 10);
+				// send PC's as well
+				hal_send_midi(midiPort[TRACK_COUNT-1],PC + channel[TRACK_COUNT-1],scene_pc[sceneSelect-1],0);
+			}
 		}
 	}
 	drawSetupMode();
@@ -1111,14 +1157,31 @@ void onSetupGridTouch(u8 index, u8 value) {
 		// send request tempo sysx
 		requestSceneTempo(sysexMidiPort, scene);
 
-		//send program change (last track port and channel)
-		if ((seqPlay<1) || (scene_pc[scene] && (scene_pc[scene] < 255) && (current_pc!=scene_pc[scene]))) {
+		//send program change 1 (last track port and channel)
+		if ((seqPlay<1) || (current_pc!=scene_pc[scene])) {
 			// send PC
-			hal_send_midi(midiPort[TRACK_COUNT-1],PC + channel[TRACK_COUNT-1],scene_pc[scene],0);
+			if ((scene_pc[scene] && (scene_pc[scene] < 255))) {
+				// send PC
+				hal_send_midi(midiPort[TRACK_COUNT-1],PC + channel[TRACK_COUNT-1],scene_pc[scene],0);
 
-			//set current program
-			current_pc = scene_pc[scene];
+				//set current program
+				current_pc = scene_pc[scene];
+			}
 		 }
+
+		//send program 2
+		if ((seqPlay<1) || (current_pc2!=scene_pc[SCENE_COUNT+scene])) {
+
+			if ((scene_pc[SCENE_COUNT+scene] && (scene_pc[SCENE_COUNT+scene] < 255))) {
+				// send PC
+				hal_send_midi(midiPort[TRACK_COUNT-2],PC + channel[TRACK_COUNT-2],scene_pc[SCENE_COUNT+scene],0);
+
+				//set current program
+				current_pc2 = scene_pc[SCENE_COUNT+scene];
+			}
+		 }
+
+
 		}
 
 	// change color of the mute track select if pressed
@@ -1330,6 +1393,7 @@ void onSetupGridTouch(u8 index, u8 value) {
 
 	}
 
+	//step record
      if (midiTrackSelect==0) {
 	  if ((index >=11 && index <=14) || (index >=21 && index <=24) || (index >=31 && index <=34) || (index >=41 && index <=44)) {
 
@@ -1424,6 +1488,17 @@ void onSetupGridTouch(u8 index, u8 value) {
   case EDIT:
   default:
 
+	//sceneShift
+	if (index==44) {
+		if (value) {
+		 sceneShift = value;
+		}
+		else {
+		 sceneShift = 0;
+		}
+		drawSetupMode();
+	}
+
     if ((index >= 51 && index <= 88) && (sceneSelect==0)) {
       updateTrackSelect(63 + index - 18 * (index / 10), value);
       drawSetupMode();
@@ -1462,8 +1537,9 @@ void onSetupGridTouch(u8 index, u8 value) {
     	}
     	drawSetupMode();
     }
-  }
-}
+
+  } // end of switch-case
+} // end of function
 
 void onAnyTouch(u8 type, u8 index, u8 value) {
   switch (type) {

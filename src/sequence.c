@@ -3,6 +3,9 @@
 #include "surface.h"
 #include "data.h"
 
+// for CC message debuging
+//#define DEBUG
+
 u8 seqPlay;
 u8 seqPlayHeads[TRACK_COUNT];
 CLOCK_STATE clockState;
@@ -67,6 +70,7 @@ void clearTrack(u8 trk) {
       for (u8 i = 0; i < MAX_SEQ_LENGTH; i++) {
         notes[trk][i].velocity = 0;
         notes[trk][i].gate = GATE_FULL;
+        notes[trk][i].offset = 0;
       }
     } else {
       clearTrackArm |= 1 << trk;
@@ -81,6 +85,7 @@ void deleteAllTracks() {
 	      for (u8 j = 0; j < MAX_SEQ_LENGTH; j++) {
 	        notes[i][j].velocity = 0;
 	        notes[i][j].gate = GATE_FULL;
+	        notes[i][i].offset = 0;
 	      }
       }
     }
@@ -220,6 +225,11 @@ void playLiveDrumNote(u8 index, u8 value, u8 machine) {
 
 	s8 note = indexToDrumNote(index,machine);
 
+	#ifdef DEBUG
+	 hal_send_midi(DINMIDI, CC, 1, index);
+	#endif
+
+
 	if (note >= 0) {
 		hal_send_midi(midiPort[track],
 				  (value ? NOTEON : NOTEOFF) + channel[track], note,
@@ -249,6 +259,7 @@ void playLiveDrumNote(u8 index, u8 value, u8 machine) {
 
 	}
 }
+
 
 void playLiveNote(u8 index, u8 value) {
   s8 note = indexToNote(index);
@@ -286,6 +297,42 @@ void playLiveNote(u8 index, u8 value) {
       }
 //    }
   }
+}
+
+void playMidiNote(u8 status, u8 note, u8 value) {
+
+
+	if (note >= 0) {
+		hal_send_midi(midiPort[track],status + channel[track], note,value);
+
+		// note on
+		if (status==NOTEON) {
+
+		  inputNotes[track].value = note;
+		  inputNotes[track].velocity = value;
+
+		  if (recordArm>0) {
+			  notes[track][seqPlayHeads[track]] = inputNotes[track];
+			  notes[track][seqPlayHeads[track]].gate = 0;
+			  notes[track][seqPlayHeads[track]].offset = 0;
+			  if (offsetArm>0) {
+				  notes[track][seqPlayHeads[track]].offset = offsetTimer;
+			  }
+		   }
+
+		#ifdef DEBUG
+		 //hal_send_midi(DINMIDI, CC, 2,notes[track][seqPlayHeads[track]].gate);
+		#endif
+
+		 }
+		// note off
+		else {
+			//notes[track][seqPlayHeads[track]].gate = seqDiv[track] - notes[track][seqPlayHeads[track]].gate;
+			#ifdef DEBUG
+			 //hal_send_midi(DINMIDI, CC, 3,notes[track][seqPlayHeads[track]].gate);
+			#endif
+		}
+	}
 }
 
 void stopPlayedNote(u8 i) {
@@ -413,8 +460,8 @@ void onMidiReceive(u8 port, u8 status, u8 d1, u8 d2) {
       //TOBETESTED
       // if recording on, trigger playLiveNOte function
       if (recordArm > 0 && ((status==NOTEON || status==NOTEOFF))) {
-    		  s8 index = noteToIndex(d1);
-    		  playLiveDrumNote(index,d2,drumMachine[track]);
+
+    		  playMidiNote(status,d1,d2);
        }
       // else pass through as is
        else {

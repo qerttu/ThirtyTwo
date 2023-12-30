@@ -5,6 +5,14 @@
 
 #define PC 0xC0
 
+#define SCENE_1_R 47
+#define SCENE_1_G 47
+#define SCENE_1_B 47
+
+#define SCENE_2_R 15
+#define SCENE_2_G 0
+#define SCENE_2_B 55
+
 #define WHITE_KEY_COLOR_R 47
 #define WHITE_KEY_COLOR_G 47
 #define WHITE_KEY_COLOR_B 47
