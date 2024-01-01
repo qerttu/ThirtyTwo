@@ -3,6 +3,9 @@
 #include "sequence.h"
 #include "surface.h"
 
+// CC sends for debugging
+//#define DEBUG
+
 void formatSysexU32(u32 ul, u8* data) {
   data[0] = ul >> 25;
   data[1] = (ul >> 18) & 0x7F;
@@ -167,8 +170,12 @@ void onDataReceive(u8 *data, u16 count) {
   if (tr == 0x7B) {
 	  u8 sc = data[5];
 	  u8 pc = data[6];
-	  if (sc<SCENE_COUNT && pc) {
+	  if (sc<(SCENE_COUNT+SCENE_COUNT) && pc) {
 		 scene_pc[sc] = pc;
+
+		#ifdef DEBUG
+		 hal_send_midi(DINMIDI, CC+1, sc, scene_pc[sc]);
+		#endif
 	  }
   }
 
@@ -236,6 +243,10 @@ void sendScenePC(u8 port, u8 sc) {
 	  data[6] = scene_pc[sc];
 	  data[7] = 0xF7;
 	  hal_send_sysex(port, data, 8);
+
+#ifdef DEBUG
+ hal_send_midi(DINMIDI, CC, sc, scene_pc[sc]);
+#endif
 
 }
 

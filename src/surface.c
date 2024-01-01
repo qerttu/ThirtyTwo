@@ -1002,29 +1002,32 @@ void onScenePCGridTouch(u8 index, u8 value) {
 	if (value && index >= 51 && index <= 88 && sceneSelect>0) {
 		// set PC
 
-		// check if value already set, then assign it as 255 (not set)
-		if (scene_pc[sceneSelect-1]==(64 + index - 18 * (index / 10))) {
-			if (sceneShift) {
+		if (sceneShift) {
+
+			// if value already set, add 255 (not set)
+			if (scene_pc[SCENE_COUNT+sceneSelect-1]==(64 + index - 18 * (index / 10))) {
 				scene_pc[SCENE_COUNT+sceneSelect-1] = 255;
 			}
 			else {
-				scene_pc[sceneSelect-1] = 255;
+				// add pc number as PC1 value
+				scene_pc[SCENE_COUNT+sceneSelect-1] = 64 + index - 18 * (index / 10);
+				// send PC1 as well
+				hal_send_midi(midiPort[TRACK_COUNT-2],PC + channel[TRACK_COUNT-2],scene_pc[SCENE_COUNT+sceneSelect-1],0);
 			}
 		}
 		else {
 
-			if (sceneShift) {
-				// add pc number as PC value
-				scene_pc[SCENE_COUNT+sceneSelect-1] = 64 + index - 18 * (index / 10);
-				// send PC's as well
-				hal_send_midi(midiPort[TRACK_COUNT-2],PC + channel[TRACK_COUNT-2],scene_pc[SCENE_COUNT+sceneSelect-1],0);
+			// if value already set, add 255 (not set)
+			if (scene_pc[sceneSelect-1]==(64 + index - 18 * (index / 10))) {
+				scene_pc[sceneSelect-1] = 255;
 			}
 			else {
-				// add pc number as PC value
+				// add pc number as PC2 value
 				scene_pc[sceneSelect-1] = 64 + index - 18 * (index / 10);
-				// send PC's as well
+				// send PC2 as well
 				hal_send_midi(midiPort[TRACK_COUNT-1],PC + channel[TRACK_COUNT-1],scene_pc[sceneSelect-1],0);
 			}
+
 		}
 	}
 	drawSetupMode();
@@ -1700,11 +1703,19 @@ void sendAllSysexData() {
 				  sendGlobalSettingsData(sysexMidiPort);
 
 				  // send trackmute and PC data per scene
-				  for (u8 i=0; i<SCENE_COUNT;i++){
+				  for (u8 i=0; i<(SCENE_COUNT);i++){
 					  sendTrackMuteData(sysexMidiPort,i);
+
+					  // send first set
 					  if (scene_pc[i] && scene_pc[i] < 255) {
 						  sendScenePC(sysexMidiPort,i);
 					  }
+
+					  // send second set
+					  if (scene_pc[SCENE_COUNT+i] && scene_pc[SCENE_COUNT+i] < 255) {
+						  sendScenePC(sysexMidiPort,SCENE_COUNT+i);
+					  }
+
 				  }
 
 
