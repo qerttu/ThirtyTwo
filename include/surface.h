@@ -13,6 +13,10 @@
 #define SCENE_2_G 0
 #define SCENE_2_B 55
 
+#define SCENE_TYPE_R 47
+#define SCENE_TYPE_G 47
+#define SCENE_TYPE_B 15
+
 #define WHITE_KEY_COLOR_R 47
 #define WHITE_KEY_COLOR_G 47
 #define WHITE_KEY_COLOR_B 47
@@ -95,6 +99,8 @@ static const u8 CHANNEL_COLORS[16][3] = {{63,  0,  0}, {63, 15,  0}, {63, 31,  0
                                          {63, 63,  0}, {31, 63,  0}, {15, 63,  0}, { 0, 63,  0},
                                          { 0, 63, 15}, { 0, 63, 31}, { 0, 63, 63}, { 0, 31, 63},
                                          { 0,  0, 63}, {15,  0, 31}, {31,  0, 31}, {31,  0, 15}};
+
+static const u8 SETUP_PAGE_COLORS[4][3] = {{0,  7,  63}, {47, 47,  15}, {15, 0,  31}, {0, 63,  7}};
 
 extern u8 SEQ_INDEXES[32];
 

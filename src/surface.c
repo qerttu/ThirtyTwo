@@ -77,10 +77,6 @@ s8 noteToDrumIndex(u8 note, u8 machine) {
 
 s8 noteToIndex(u8 note) {
 
-	#ifdef DEBUG
-	 hal_send_midi(DINMIDI, CC, 3, note);
-	#endif
-
   if (drumTrack[track]) {
     u8 noteOctave = note / 16;
     u8 relNote = note % 16;
@@ -367,15 +363,23 @@ void drawSetupMode() {
     for (u8 i = 0; i < sizeof(SCENE_INDEXES); i++) {
 
 		if (i==scene) {
-		hal_plot_led(TYPEPAD, SCENE_INDEXES[i], WHITE_KEY_COLOR_R,
-		                                      WHITE_KEY_COLOR_G,
-		                                      WHITE_KEY_COLOR_B);
+			if (scene_type[i]==1) {
+				hal_plot_led(TYPEPAD, SCENE_INDEXES[i], SCENE_TYPE_R,SCENE_TYPE_G,SCENE_TYPE_B);
+			}
+			else {
+				hal_plot_led(TYPEPAD, SCENE_INDEXES[i], WHITE_KEY_COLOR_R,WHITE_KEY_COLOR_G,WHITE_KEY_COLOR_B);
+			}
 		}
 		else
 		{
-			hal_plot_led(TYPEPAD, SCENE_INDEXES[i], WHITE_KEY_COLOR_R >> 3,
-			                                      WHITE_KEY_COLOR_G >> 3,
-			                                      WHITE_KEY_COLOR_B >> 3);
+			if (scene_type[i]==1) {
+				hal_plot_led(TYPEPAD, SCENE_INDEXES[i], SCENE_TYPE_R >> 3,SCENE_TYPE_G >> 3,SCENE_TYPE_B >> 3);
+			}
+			else {
+				hal_plot_led(TYPEPAD, SCENE_INDEXES[i], WHITE_KEY_COLOR_R >> 3,
+				                                      WHITE_KEY_COLOR_G >> 3,
+				                                      WHITE_KEY_COLOR_B >> 3);
+			}
 		}
 
     }
@@ -725,15 +729,31 @@ void drawSetupMode() {
      for (u8 i = 0; i < sizeof(SCENE_INDEXES); i++) {
 
  		if (sceneSelect && (sceneSelect-1)==i) {
- 		hal_plot_led(TYPEPAD, SCENE_INDEXES[i], WHITE_KEY_COLOR_R,
- 		                                      WHITE_KEY_COLOR_G,
- 		                                      WHITE_KEY_COLOR_B);
+
+ 		   if (scene_type[i]==1) {
+  			  hal_plot_led(TYPEPAD, SCENE_INDEXES[i], SCENE_TYPE_R,SCENE_TYPE_G,SCENE_TYPE_B);
+ 		   }
+ 		   else
+ 		   {
+ 			  hal_plot_led(TYPEPAD, SCENE_INDEXES[i], WHITE_KEY_COLOR_R,
+ 			   		                                      WHITE_KEY_COLOR_G,
+ 			   		                                      WHITE_KEY_COLOR_B);
+ 		   }
+
  		}
  		else
  		{
- 			hal_plot_led(TYPEPAD, SCENE_INDEXES[i], WHITE_KEY_COLOR_R >> 3,
- 			                                      WHITE_KEY_COLOR_G >> 3,
- 			                                      WHITE_KEY_COLOR_B >> 3);
+
+  		   if (scene_type[i]==1) {
+  			 hal_plot_led(TYPEPAD, SCENE_INDEXES[i], SCENE_TYPE_R >> 3,SCENE_TYPE_G >> 3,SCENE_TYPE_B >> 3);
+  		   }
+  		   else
+  		   {
+  	 			hal_plot_led(TYPEPAD, SCENE_INDEXES[i], WHITE_KEY_COLOR_R >> 3,
+  	 			                                      WHITE_KEY_COLOR_G >> 3,
+  	 			                                      WHITE_KEY_COLOR_B >> 3);
+  		   }
+
  		}
 
      }
@@ -745,6 +765,20 @@ void drawSetupMode() {
 		else
 		{
 			hal_plot_led(TYPEPAD, 44, SCENE_2_R >> 3,SCENE_2_G >> 3,SCENE_2_B >> 3);
+		}
+
+	  // scene type button
+		if (sceneSelect) {
+
+			//momentary
+			if (scene_type[sceneSelect-1]==1) {
+				hal_plot_led(TYPEPAD, 34, SCENE_TYPE_R,SCENE_TYPE_G,SCENE_TYPE_B);
+			}
+			//push (default)
+			else
+			{
+				hal_plot_led(TYPEPAD, 34, SCENE_TYPE_R >> 3,SCENE_TYPE_G >> 3,SCENE_TYPE_B >> 3);
+			}
 		}
 
 
@@ -763,25 +797,30 @@ void drawSetupMode() {
     // settings pages
     for (u8 i = 0; i < 4; i++) {
       if (setupPage == i) {
-        hal_plot_led(TYPEPAD, 25 + i, SETUP_PAGE_COLOR_R, SETUP_PAGE_COLOR_G,
-                     SETUP_PAGE_COLOR_B);
+        hal_plot_led(TYPEPAD, 25 + i, SETUP_PAGE_COLORS[i][0], SETUP_PAGE_COLORS[i][1],
+        		SETUP_PAGE_COLORS[i][2]);
       } else {
-        hal_plot_led(TYPEPAD, 25 + i, SETUP_PAGE_COLOR_R >> 3,
-                     SETUP_PAGE_COLOR_G >> 3, SETUP_PAGE_COLOR_B >> 3);
+        hal_plot_led(TYPEPAD, 25 + i, SETUP_PAGE_COLORS[i][0] >> 3,
+        		SETUP_PAGE_COLORS[i][1] >> 3, SETUP_PAGE_COLORS[i][2] >> 3);
       }
      }
   	}
 
   if (trackSelectStart < 0) {
-    // internal clock
+
+
+	// tempo select
+	if (setupPage == EDIT) {
+		hal_plot_led(TYPEPAD, 17, TEMPO_SELECT_COLOR_R, TEMPO_SELECT_COLOR_G, TEMPO_SELECT_COLOR_B);
+	}
+
+	  // internal clock
     if (clockState == STOPPED) {
-      hal_plot_led(TYPEPAD, 17, CLOCK_STATE_COLOR_R >> 3, CLOCK_STATE_COLOR_G >> 3, CLOCK_STATE_COLOR_B >> 3);
+      hal_plot_led(TYPEPAD, 18, CLOCK_STATE_COLOR_R >> 3, CLOCK_STATE_COLOR_G >> 3, CLOCK_STATE_COLOR_B >> 3);
     } else {
-      hal_plot_led(TYPEPAD, 17, CLOCK_STATE_COLOR_R, CLOCK_STATE_COLOR_G, CLOCK_STATE_COLOR_B);
+      hal_plot_led(TYPEPAD, 18, CLOCK_STATE_COLOR_R, CLOCK_STATE_COLOR_G, CLOCK_STATE_COLOR_B);
     }
 
-    // tempo select
-    hal_plot_led(TYPEPAD, 18, TEMPO_SELECT_COLOR_R, TEMPO_SELECT_COLOR_G, TEMPO_SELECT_COLOR_B);
 
   }
 
@@ -904,7 +943,7 @@ void onSeqTouch(u8 index, u8 value) {
   }
 
   // if on repeat mode
-  else if (setupMode && setupPage == REPEAT) {
+  else if (setupMode && setupPage == MUTE) {
     if (value) {
       stepRepeat |= 1 << index;
     } else {
@@ -1030,6 +1069,18 @@ void onScenePCGridTouch(u8 index, u8 value) {
 
 		}
 	}
+	else if (value && index == 34 && sceneSelect>0) {
+
+		// if momentary, set to 255 (not set)
+		if (scene_type[sceneSelect-1] == 1) {
+			scene_type[sceneSelect-1] = 255;
+		}
+		// if push, set to momentary
+		else
+		{
+			scene_type[sceneSelect-1] = 1;
+		}
+	}
 	drawSetupMode();
 }
 
@@ -1065,6 +1116,11 @@ void onSetupGridTouch(u8 index, u8 value) {
 		  clearRoundedPads();
 	  }
 
+	  if (setupPage == MUTE) {
+		  drawSeqSteps();
+	  }
+
+
 	  drawSetupMode();
 	}
 
@@ -1090,7 +1146,7 @@ void onSetupGridTouch(u8 index, u8 value) {
 	*/
 
     // start button
-    else if (value && index == 17) {
+    else if (value && index == 18) {
       if (!seqPlay && clockState == STOPPED) {
         clockState = STARTING;
         drawSetupMode();
@@ -1100,7 +1156,7 @@ void onSetupGridTouch(u8 index, u8 value) {
     }
 
     // tempo select
-    else if (index == 18) {
+    else if (index == 17) {
       tempoSelect = value;
       drawSeqSteps();
     }
@@ -1145,15 +1201,33 @@ void onSetupGridTouch(u8 index, u8 value) {
 
 
 	//MK: scene buttons
-	if (value && ((index >= 35 && index <= 38) || (index >= 45 && index <=48))) {
+	if ((index >= 35 && index <= 38) || (index >= 45 && index <=48)) {
 		// set scene
 
-	    for (u8 i = 0; i < sizeof(SCENE_INDEXES); i++) {
-	      if (index == SCENE_INDEXES[i]) {
-	    	  scene = i;
-	      }
-	    }
+		 if (value) {
+			for (u8 i = 0; i < sizeof(SCENE_INDEXES); i++) {
+			  if (index == SCENE_INDEXES[i]) {
+				  scene = i;
 
+				  //if we are not on momentary, store the current scene
+				  if (scene_type[scene]!=1) {
+					  sceneSelect = i;
+
+				  }
+
+				#ifdef DEBUG
+				 hal_send_midi(DINMIDI, CC, 1, sceneSelect);
+				#endif
+			  }
+			}
+		 }
+		 else {
+			 //if we are on momentery scene, switch to the previous scene
+			 if(scene_type[scene]==1) {
+				 scene = sceneSelect;
+			 }
+
+		 }
 		// draw pads again
 		drawSetupMode();
 
