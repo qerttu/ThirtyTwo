@@ -3,9 +3,11 @@
 
 #include "app_defs.h"
 
+//#define TRACK_COUNT 32
 #define TRACK_COUNT 32
 #define MAX_SEQ_LENGTH 32
 #define SCENE_COUNT 8
+#define PC_COUNT 3
 #define PROJECT_COUNT 32
 #define DRUMPAD_COUNT 16
 
@@ -21,6 +23,16 @@ typedef struct {
   u8 gate;
   u8 offset;
 } MIDI_NOTE;
+
+typedef struct {
+	u8 value; // 0-127
+	u8 bank; // 0-127
+} PC_MESSAGE;
+
+typedef struct {
+	u8 channel; // 1-16
+	u8 status; // 0 = inactive, 1 = active
+} PC_SLOT;
 
 typedef enum { STOPPED, STARTING, PLAYING, STOPPING } CLOCK_STATE;
 
@@ -93,11 +105,18 @@ extern u8 midiPort[TRACK_COUNT];
 extern u8 stepSize[TRACK_COUNT];
 extern u8 drumTrack[TRACK_COUNT]; // 0 = keyboard, 1 = drumpads
 extern u8 drumMachine[TRACK_COUNT]; // 0 = volca beats, 1 = volca sample, 2 = MPC
-extern u8 scene_pc[SCENE_COUNT+SCENE_COUNT]; // program change message for scenes
 extern u8 scene_type[SCENE_COUNT]; // push=0, momentary=1
-extern u8 current_pc; // current pc
+
+// new PC variables
+extern PC_MESSAGE pc_message[SCENE_COUNT][PC_COUNT]; // using new
+extern PC_MESSAGE current_pc_message[SCENE_COUNT][PC_COUNT];
+extern PC_SLOT pc_slot[PC_COUNT];
+
+// old PC variables
 extern u8 current_pc; // current program, set 1
 extern u8 current_pc2; // current program, set 2
+extern u8 scene_pc[SCENE_COUNT+SCENE_COUNT]; // program change message for scenes
+
 extern u8 pc_set; // pc screens
 
 

@@ -20,7 +20,14 @@ u8 saveSelect = 0;
 u8 loadSelect = 0;
 u8 deleteSelect = 0;
 u8 sceneSelect = 0;
+
+// old pc variables
 u8 sceneShift = 0;
+
+// new pc variables
+u8 pcSlotSelect = 0;
+
+
 
 // MK: status for sendSysex time function
 u8 sendSysex = 0;
@@ -635,20 +642,26 @@ void drawSetupMode() {
 
 	   // scene PC's
 	   if (sceneSelect>0) {
-		  if (sceneShift) {
-			  if (scene_pc[sceneSelect+SCENE_COUNT-1]==i+1) {
-				  hal_plot_led(TYPEPAD, 81 + i - 18 * (i / 8), SCENE_2_R, SCENE_2_G,
-						  SCENE_2_B);
-			  }
-		  }
-		  else {
-			  if(scene_pc[sceneSelect-1]==i+1) {
-				  hal_plot_led(TYPEPAD, 81 + i - 18 * (i / 8), SCENE_1_R, SCENE_1_G,
-						  SCENE_1_B);
-			  }
-    	 }
-	   }
 
+		  if (pc_message[sceneSelect-1][pcSlotSelect].value ==i) {
+				  hal_plot_led(TYPEPAD, 81 + i - 18 * (i / 8), PC_SLOT_COLORS[pcSlotSelect][0], PC_SLOT_COLORS[pcSlotSelect][1],
+						  PC_SLOT_COLORS[pcSlotSelect][2]);
+			  }
+
+		// OLD SCENE PC
+		//if (sceneShift) {
+		//  if (scene_pc[sceneSelect+SCENE_COUNT-1]==i+1) {
+		//		  hal_plot_led(TYPEPAD, 81 + i - 18 * (i / 8), SCENE_2_R, SCENE_2_G,
+		//				  SCENE_2_B);
+		//	  }
+		//  }
+		//  else {
+		//	  if(scene_pc[sceneSelect-1]==i+1) {
+		//		  hal_plot_led(TYPEPAD, 81 + i - 18 * (i / 8), SCENE_1_R, SCENE_1_G,
+		//				  SCENE_1_B);
+		//	  }
+    	//}
+	   }
 	   // track colors
 	   else {
 		for (u8 i = 0; i < TRACK_COUNT; i++) {
@@ -758,14 +771,17 @@ void drawSetupMode() {
 
      }
 
-		 // scene shift button
-		if (sceneShift) {
-			hal_plot_led(TYPEPAD, 44, SCENE_2_R,SCENE_2_G,SCENE_2_B);
-		}
-		else
-		{
-			hal_plot_led(TYPEPAD, 44, SCENE_2_R >> 3,SCENE_2_G >> 3,SCENE_2_B >> 3);
-		}
+		 // scene slot select
+     	 for (u8 i=0;i<PC_COUNT;i++) {
+     		if (i==pcSlotSelect) {
+     			hal_plot_led(TYPEPAD, PC_SLOT_INDEXES[i], PC_SLOT_COLORS[i][0],PC_SLOT_COLORS[i][1],PC_SLOT_COLORS[i][2]);
+     		}
+     		else
+     		{
+     			hal_plot_led(TYPEPAD, PC_SLOT_INDEXES[i], PC_SLOT_COLORS[i][0] >> 3,PC_SLOT_COLORS[i][1] >> 3,PC_SLOT_COLORS[i][2] >> 3);
+     		}
+     	 }
+
 
 	  // scene type button
 		if (sceneSelect) {
@@ -1038,37 +1054,41 @@ void onTrackSettingsGridTouch(u8 index, u8 value) {
 }
 
 void onScenePCGridTouch(u8 index, u8 value) {
+
+	// set PC messages
 	if (value && index >= 51 && index <= 88 && sceneSelect>0) {
-		// set PC
 
-		if (sceneShift) {
-
-			// if value already set, add 255 (not set)
-			if (scene_pc[SCENE_COUNT+sceneSelect-1]==(64 + index - 18 * (index / 10))) {
-				scene_pc[SCENE_COUNT+sceneSelect-1] = 255;
-			}
-			else {
-				// add pc number as PC1 value
-				scene_pc[SCENE_COUNT+sceneSelect-1] = 64 + index - 18 * (index / 10);
-				// send PC1 as well
-				hal_send_midi(midiPort[TRACK_COUNT-2],PC + channel[TRACK_COUNT-2],scene_pc[SCENE_COUNT+sceneSelect-1],0);
-			}
-		}
-		else {
+		//if (sceneShift) {
 
 			// if value already set, add 255 (not set)
-			if (scene_pc[sceneSelect-1]==(64 + index - 18 * (index / 10))) {
-				scene_pc[sceneSelect-1] = 255;
+			if (pc_message[sceneSelect-1][pcSlotSelect].value==(64 + index - 18 * (index / 10))-1) {
+				pc_message[sceneSelect-1][pcSlotSelect].value = 255;
 			}
 			else {
+				// add value to the select scene/slot
+				pc_message[sceneSelect-1][pcSlotSelect].value = (64 + index - 18 * (index / 10))-1;
+
+				// send program message got the select slot as well, using track 1 port
+				hal_send_midi(midiPort[0],PC + pc_slot[pcSlotSelect].channel,pc_message[sceneSelect-1][pcSlotSelect].value,0);
+			}
+		//}
+		//else {
+
+			// if value already set, add 255 (not set)
+		//	if (scene_pc[sceneSelect-1]==(64 + index - 18 * (index / 10))) {
+		//		scene_pc[sceneSelect-1] = 255;
+		//	}
+		//	else {
 				// add pc number as PC2 value
-				scene_pc[sceneSelect-1] = 64 + index - 18 * (index / 10);
-				// send PC2 as well
-				hal_send_midi(midiPort[TRACK_COUNT-1],PC + channel[TRACK_COUNT-1],scene_pc[sceneSelect-1],0);
-			}
-
-		}
+		//		scene_pc[sceneSelect-1] = 64 + index - 18 * (index / 10);
+		//		// send PC2 as well
+		//		hal_send_midi(midiPort[TRACK_COUNT-1],PC + channel[TRACK_COUNT-1],scene_pc[sceneSelect-1],0);
+		//	}
+		//
+		//}
 	}
+
+	// set scene TYPE
 	else if (value && index == 34 && sceneSelect>0) {
 
 		// if momentary, set to 255 (not set)
@@ -1201,10 +1221,12 @@ void onSetupGridTouch(u8 index, u8 value) {
 
 
 	//MK: scene buttons
-	if ((index >= 35 && index <= 38) || (index >= 45 && index <=48)) {
-		// set scene
+	if (((index >= 35 && index <= 38) || (index >= 45 && index <=48))) {
 
+		// button pushed
 		 if (value) {
+
+			// set scene
 			for (u8 i = 0; i < sizeof(SCENE_INDEXES); i++) {
 			  if (index == SCENE_INDEXES[i]) {
 				  scene = i;
@@ -1212,7 +1234,6 @@ void onSetupGridTouch(u8 index, u8 value) {
 				  //if we are not on momentary, store the current scene
 				  if (scene_type[scene]!=1) {
 					  sceneSelect = i;
-
 				  }
 
 				#ifdef DEBUG
@@ -1220,45 +1241,52 @@ void onSetupGridTouch(u8 index, u8 value) {
 				#endif
 			  }
 			}
+
+			// send PC messages
+			for (u8 i=0;i<PC_COUNT;i++) {
+
+				// check if an active value
+				if (pc_message[scene][i].value<255) {
+
+					// TO DO PLAYING
+					// if playing, check first previous pc value
+					//if ((seqPlay==1)) {
+					//	if ((current_pc_message[scene][i].value!=pc_message[scene][i].value)){
+					//		//send PC
+					//		hal_send_midi(midiPort[0],PC + pc_slot[i].channel,pc_message[scene][i].value,0);
+					//	}
+					//}
+					// if not playing, just send out the PC's
+					//else
+					//{
+						hal_send_midi(midiPort[0],PC + pc_slot[i].channel,pc_message[scene][i].value,0);
+					//}
+
+					//set current program
+					current_pc_message[scene][i].value = pc_message[scene][i].value;
+					#ifdef DEBUG
+					 hal_send_midi(DINMIDI, CC, 1, sceneSelect);
+					#endif
+				}
+
+			}
+
+			// send request tempo sysx
+			requestSceneTempo(sysexMidiPort, scene);
+
 		 }
+		 // button released
 		 else {
-			 //if we are on momentery scene, switch to the previous scene
+			 //if we are on momentary scene, switch to the previous scene
 			 if(scene_type[scene]==1) {
 				 scene = sceneSelect;
 			 }
 
 		 }
+
+
 		// draw pads again
 		drawSetupMode();
-
-		// send request tempo sysx
-		requestSceneTempo(sysexMidiPort, scene);
-
-		//send program change 1 (last track port and channel)
-		if ((seqPlay<1) || (current_pc!=scene_pc[scene])) {
-			// send PC
-			if ((scene_pc[scene] && (scene_pc[scene] < 255))) {
-				// send PC
-				hal_send_midi(midiPort[TRACK_COUNT-1],PC + channel[TRACK_COUNT-1],scene_pc[scene],0);
-
-				//set current program
-				current_pc = scene_pc[scene];
-			}
-		 }
-
-		//send program 2
-		if ((seqPlay<1) || (current_pc2!=scene_pc[SCENE_COUNT+scene])) {
-
-			if ((scene_pc[SCENE_COUNT+scene] && (scene_pc[SCENE_COUNT+scene] < 255))) {
-				// send PC
-				hal_send_midi(midiPort[TRACK_COUNT-2],PC + channel[TRACK_COUNT-2],scene_pc[SCENE_COUNT+scene],0);
-
-				//set current program
-				current_pc2 = scene_pc[SCENE_COUNT+scene];
-			}
-		 }
-
-
 		}
 
 	// change color of the mute track select if pressed
@@ -1438,11 +1466,26 @@ void onSetupGridTouch(u8 index, u8 value) {
 
 
 
-	//MK: if mute track select pressed
+	//MK: if mute track select pressed, select track
 	if (value && index >= 51 && index <= 88 && (muteTrackSelect>0)) {
 		  track = 63 + index - 18 * (index / 10);
 		  drawSeqSteps();
 		  drawSetupMode();
+	}
+
+	// if drumpad pressed, select track
+	for (u8 i = 0; i < 4; i++) {
+		for (u8 j = 0; j < 4; j++) {
+		  if (value && index==(11 + i * 10 + j))
+		  {
+			  if (track != (i*4+j))
+			  {
+			  track = i*4+j;
+			  drawSeqSteps();
+			  drawSetupMode();
+			  }
+		  }
+		}
 	}
 
 	// if midi track select pressed
@@ -1565,16 +1608,24 @@ void onSetupGridTouch(u8 index, u8 value) {
   case EDIT:
   default:
 
-	//sceneShift
-	if (index==44) {
+	//PC slots
+	if (index>=PC_SLOT_INDEXES[0] && index<=PC_SLOT_INDEXES[PC_COUNT-1]){
 		if (value) {
-		 sceneShift = value;
+		 pcSlotSelect = index-41;
+		 drawSetupMode();
 		}
-		else {
-		 sceneShift = 0;
-		}
-		drawSetupMode();
 	}
+	//sceneShift
+	//if (index==44) {
+	//	if (value) {
+	//	 sceneShift = value;
+	//	}
+	//	else {
+	//	 sceneShift = 0;
+	//	}
+	//	drawSetupMode();
+	//}
+
 
     if ((index >= 51 && index <= 88) && (sceneSelect==0)) {
       updateTrackSelect(63 + index - 18 * (index / 10), value);
@@ -1771,6 +1822,7 @@ void sendAllSysexData() {
 
 			  ++tr_sysex;
 
+			  // last, send global settings, track mute data and PC data
 			  if (tr_sysex>TRACK_COUNT) {
 
 				  // send global settings
@@ -1778,18 +1830,22 @@ void sendAllSysexData() {
 
 				  // send trackmute and PC data per scene
 				  for (u8 i=0; i<(SCENE_COUNT);i++){
+					  // send track mute data
 					  sendTrackMuteData(sysexMidiPort,i);
+				  }
 
-					  // send first set
-					  if (scene_pc[i] && scene_pc[i] < 255) {
-						  sendScenePC(sysexMidiPort,i);
+				  // send program change messages
+				  for (u8 i=0; i<(SCENE_COUNT);i++){
+					  for (u8 j=0;j<PC_COUNT;j++) {
+						  if (pc_message[i][j].value <255) {
+							  sendScenePC(sysexMidiPort,i,j);
+						  }
 					  }
+				  }
 
-					  // send second set
-					  if (scene_pc[SCENE_COUNT+i] && scene_pc[SCENE_COUNT+i] < 255) {
-						  sendScenePC(sysexMidiPort,SCENE_COUNT+i);
-					  }
-
+				  // send scene type messages
+				  for (u8 i=0; i<(SCENE_COUNT);i++){
+					  sendSceneType(sysexMidiPort,i);
 				  }
 
 

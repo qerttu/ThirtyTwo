@@ -166,15 +166,27 @@ void onDataReceive(u8 *data, u16 count) {
   u8 tr = data[4];
 
 
-  //MK: set PCs for scenes
+  //SCENE TYPE
+  if (tr == 0x7A) {
+	 u8 sc = data[5];
+	 u8 sctype = data[6];
+	 scene_type[sc] = sctype;
+  }
+
+  //PCs for scenes
   if (tr == 0x7B) {
 	  u8 sc = data[5];
-	  u8 pc = data[6];
-	  if (sc<(SCENE_COUNT+SCENE_COUNT) && pc) {
-		 scene_pc[sc] = pc;
+	  u8 instrument = data[6];
+	  u8 pc = data[7];
+	  if (sc<SCENE_COUNT) {
+		  pc_message[sc][instrument].value = pc;
 
 		#ifdef DEBUG
-		 hal_send_midi(DINMIDI, CC+1, sc, scene_pc[sc]);
+
+		  hal_send_midi(DINMIDI, CC, 1, sc);
+		  hal_send_midi(DINMIDI, CC, 2, instrument);
+		  hal_send_midi(DINMIDI, CC, 3, pc_message[sc][instrument].value);
+
 		#endif
 	  }
   }
@@ -229,25 +241,60 @@ void onDataReceive(u8 *data, u16 count) {
   drawSetupMode();
 }
 
-void sendScenePC(u8 port, u8 sc) {
-	  u8 data[8];
+void sendScenePC(u8 port, u8 sc, u8 instrument) {
+	  u8 data[9];
+
 	  data[0] = 0xF0;
 	  // 00H 20H 29H -> Focusrite/Novation manufacturer ID
 	  data[1] = 0x00;
 	  data[2] = 0x20;
 	  data[3] = 0x29;
+
 	  // track number 123 for comm messages
 	  data[4] = 0x7B;
+
+	  //scene
 	  data[5] = sc;
-	  // 9 for delete project
-	  data[6] = scene_pc[sc];
-	  data[7] = 0xF7;
-	  hal_send_sysex(port, data, 8);
+
+	  //instrument
+	  data[6] = instrument;
+
+	  //pc value
+	  data[7] = pc_message[sc][instrument].value;
+
+	  data[8] = 0xF7;
+	  hal_send_sysex(port, data, 9);
 
 #ifdef DEBUG
- hal_send_midi(DINMIDI, CC, sc, scene_pc[sc]);
+	  //hal_send_sysex(DINMIDI, data, 9);
+
+ hal_send_midi(DINMIDI, CC, 1, sc);
+ hal_send_midi(DINMIDI, CC, 2, instrument);
+ hal_send_midi(DINMIDI, CC, 3, pc_message[sc][instrument].value);
 #endif
 
+}
+
+void sendSceneType(u8 port, u8 sc) {
+	  u8 data[8];
+
+	  data[0] = 0xF0;
+	  // 00H 20H 29H -> Focusrite/Novation manufacturer ID
+	  data[1] = 0x00;
+	  data[2] = 0x20;
+	  data[3] = 0x29;
+
+	  // track number 122 for comm message
+	  data[4] = 0x7A;
+
+	  //scene
+	  data[5] = sc;
+
+	  //type
+	  data[6] = scene_type[sc];
+
+	  data[8] = 0xF7;
+	  hal_send_sysex(port, data, 8);
 }
 
 void sendTrackData(u8 port, u8 tr) {
@@ -331,10 +378,16 @@ void sendTrackMuteData(u8 port, u8 mt) {
 void loadProject(u8 port, u8 pt) {
 
 	// clean PC's for scenes
-	  for (u8 i=0; i<SCENE_COUNT;i++){
+	 // for (u8 i=0; i<SCENE_COUNT;i++){
 		  // clear PC's for scenes
-		  scene_pc[i] = 255;
-		  scene_pc[i+SCENE_COUNT] = 255;
+	//	  scene_pc[i] = 255;
+	//	  scene_pc[i+SCENE_COUNT] = 255;
+	 // }
+
+	  for (u8 i=0; i<(SCENE_COUNT);i++){
+		  for (u8 j=0;j<PC_COUNT;j++) {
+			  pc_message[i][j].value = 255;
+	  	  }
 	  }
 
 	  u8 data[8];

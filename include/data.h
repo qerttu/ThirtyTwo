@@ -46,7 +46,9 @@ void loadLastSettings();
 
 void onDataReceive(u8 *data, u16 count);
 
-void sendScenePC(u8 port, u8 sc);
+void sendScenePC(u8 port, u8 sc, u8 instrument);
+
+void sendSceneType(u8 port, u8 sc);
 
 void sendTrackData(u8 port, u8 tr);
 

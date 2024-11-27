@@ -94,6 +94,7 @@
 #define OFFSET_COLOR_B 63
 
 
+static const u8 PC_SLOT_COLORS[3][3] = {{63,0,0},{0,31,63},{0,63,11}};
 
 static const u8 CHANNEL_COLORS[16][3] = {{63,  0,  0}, {63, 15,  0}, {63, 31,  0}, {63, 47,  0},
                                          {63, 63,  0}, {31, 63,  0}, {15, 63,  0}, { 0, 63,  0},
@@ -115,6 +116,8 @@ static const u8 SEQ_INDEXES_SQR[32] = {81, 82, 83, 84, 85, 86, 87, 88,
                                    51, 52, 53, 54, 55, 56, 57, 58};
 
 static const u8 SCENE_INDEXES[8] = {45,46,47,48,35,36,37,38};
+
+static const u8 PC_SLOT_INDEXES[3] = {41,42,43};
 
 
 static const u8 KEYS_INDEXES[12] = {11, 22, 12, 23, 13, 14, 25, 15, 26, 16, 27, 17};

@@ -46,10 +46,18 @@ u8 midiPort[TRACK_COUNT];
 u8 stepSize[TRACK_COUNT];
 u8 drumTrack[TRACK_COUNT]; // 0 = keyboard, 1 = drumpads
 u8 drumMachine[TRACK_COUNT]; // 0=valca beats, 1 = volca sample, 2 = MPC...
-u8 scene_pc[SCENE_COUNT+SCENE_COUNT]; // for two set of PCs
-u8 scene_type[SCENE_COUNT]; // push=0, momentary=1
+
+// new PC variables
+PC_MESSAGE pc_message[SCENE_COUNT][PC_COUNT]; // new struct for PCs
+PC_MESSAGE current_pc_message[SCENE_COUNT][PC_COUNT]; // array for current pc messages
+PC_SLOT pc_slot[PC_COUNT];
+
+// old PC variables
 u8 current_pc; // current program, set 1
 u8 current_pc2; // current program, set 2
+u8 scene_pc[SCENE_COUNT+SCENE_COUNT]; // for two set of PCs
+
+u8 scene_type[SCENE_COUNT]; // push=0, momentary=1
 u8 pc_set; // pc screens
 
 
@@ -550,16 +558,53 @@ void initSequence() {
   requestClock = 1; // use request midi as default
 
 
-  // MUTE all tracks in all scenes by default
+  // MUTE all tracks in all scenes and set default values for PC messages
   for (u8 i=0; i<SCENE_COUNT;i++){
 
 	  // MUTE all tracks in scene
 	  trackMute[i] = -1;
 
-	  // clear PC's for scenes
-	  scene_pc[i] = 255;
-	  scene_pc[i+SCENE_COUNT] = 255;
+	  //OLD IMPLEMENTATION clear PC's for scenes
+	  //scene_pc[i] = 255;
+	  //scene_pc[i+SCENE_COUNT] = 255;
+
+	  // set default values for new PC messages
+	  for (u8 j=0;j<PC_COUNT;j++) {
+		  pc_message[i][j].bank = 0;
+		  pc_message[i][j].value = 255; // 255 = empty
+
+		  current_pc_message[i][j].bank = 0;
+		  current_pc_message[i][j].value = 255;
+
+	  }
   }
+  // default values for PC slots
+  for (u8 i=0; i<PC_COUNT;i++) {
+
+	  // set slots inactive
+	  pc_slot[i].status = 0; // inactive
+
+	  // set slot channels
+	  switch (i) {
+
+	  // NORD
+	  case 0:
+		  pc_slot[i].channel = 15;
+		  break;
+
+	  //MPC
+	  case 1:
+		  pc_slot[i].channel = 0;
+		  break;
+	  //MONSTA
+	  case 2:
+		  pc_slot[i].channel = 5;
+		  break;
+	  }
+  }
+
+
+  //set default scene
   scene = 0;
 
   // init notesbuffer
