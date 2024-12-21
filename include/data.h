@@ -74,4 +74,6 @@ void viewProjectName(u8 port, u8 sc);
 
 void deleteProject(u8 port, u8 pt);
 
+void copyTrack(u8 tr1, u8 tr2);
+
 #endif

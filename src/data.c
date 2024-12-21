@@ -503,3 +503,24 @@ void deleteProject(u8 port, u8 pt) {
 
 }
 
+void copyTrack(u8 source_track, u8 target_track) {
+
+	// copy track settings
+	  inputNotes[target_track].value = inputNotes[source_track].value;
+	  inputNotes[target_track].velocity = inputNotes[source_track].velocity;
+	  inputNotes[target_track].gate = inputNotes[source_track].gate;
+	  stepSize[target_track] = stepSize[source_track];
+	  drumTrack[target_track] = drumTrack[source_track];
+	  octave[target_track] = octave[source_track];
+	  channel[target_track] = channel[source_track];
+	  midiPort[target_track] = midiPort[source_track];
+	  seqLength[target_track] = seqLength[source_track];
+
+	// copy sequence data
+	  for (u8 i = 0; i < MAX_SEQ_LENGTH; i++) {
+	    notes[target_track][i] = notes[source_track][i];
+	  }
+
+
+}
+

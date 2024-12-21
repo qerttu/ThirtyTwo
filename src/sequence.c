@@ -232,7 +232,14 @@ void updateTrackStepSize(u8 trk, u8 stepSizeIndex) {
 
 void playLiveDrumNote(u8 index, u8 value, u8 machine) {
 
-	s8 note = indexToDrumNote(index,machine);
+	s8 note = 0;
+	if (drumTrack[track]) {
+		note = indexToDrumNote(index,machine);
+	}
+	else
+	{
+		note = indexToNote(index);
+	}
 
 	#ifdef DEBUG
 	 hal_send_midi(DINMIDI, CC, 1, index);
@@ -263,7 +270,8 @@ void playLiveDrumNote(u8 index, u8 value, u8 machine) {
                    velocityFade(CHANNEL_COLORS[channel[track]][2], value));
     	}
       else { // note off
-       hal_plot_led(TYPEPAD, index, DRUM_MACHINE_COLOR_R, DRUM_MACHINE_COLOR_G, DRUM_MACHINE_COLOR_B);
+
+       hal_plot_led(TYPEPAD, index, WHITE_KEY_COLOR_R, WHITE_KEY_COLOR_B, WHITE_KEY_COLOR_G);
       }
 
 	}
@@ -279,6 +287,15 @@ void playLiveNote(u8 index, u8 value) {
     if (value) {
       inputNotes[track].value = note;
       inputNotes[track].velocity = value;
+
+	  if (recordArm>0) {
+		  notes[track][seqPlayHeads[track]] = inputNotes[track];
+		  notes[track][seqPlayHeads[track]].offset = 0;
+		  if (offsetArm>0) {
+			  notes[track][seqPlayHeads[track]].offset = offsetTimer;
+		  }
+	  }
+
     }
 
 //    if (!stepPress) {
@@ -562,7 +579,7 @@ void initSequence() {
   for (u8 i=0; i<SCENE_COUNT;i++){
 
 	  // MUTE all tracks in scene
-	  trackMute[i] = -1;
+	  //trackMute[i] = -1;
 
 	  //OLD IMPLEMENTATION clear PC's for scenes
 	  //scene_pc[i] = 255;
