@@ -3,7 +3,7 @@
 
 #include "app_defs.h"
 
-#define VERSION "1.19.7"
+#define VERSION "1.36.4"
 #define TRACK_SETTINGS_SIZE 5
 #define SYSEX_U32_SIZE 5
 #define GLOBAL_SETTINGS_SIZE 10 // 2 * SYSEX_U32_SIZE
@@ -74,6 +74,10 @@ void viewProjectName(u8 port, u8 sc);
 
 void deleteProject(u8 port, u8 pt);
 
-void copyTrack(u8 tr1, u8 tr2);
+void copyTrack(u8 source_track, u8 target_track);
+
+void moveTrack(u8 source_track, u8 target_track);
+
+void deleteTrackData(u8 tr);
 
 #endif

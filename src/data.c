@@ -293,7 +293,7 @@ void sendSceneType(u8 port, u8 sc) {
 	  //type
 	  data[6] = scene_type[sc];
 
-	  data[8] = 0xF7;
+	  data[7] = 0xF7;
 	  hal_send_sysex(port, data, 8);
 }
 
@@ -503,6 +503,38 @@ void deleteProject(u8 port, u8 pt) {
 
 }
 
+
+void moveTrack(u8 source_track, u8 target_track) {
+
+	// copy track settings
+	  inputNotes[target_track].value = inputNotes[source_track].value;
+	  inputNotes[target_track].velocity = inputNotes[source_track].velocity;
+	  inputNotes[target_track].gate = inputNotes[source_track].gate;
+	  stepSize[target_track] = stepSize[source_track];
+	  drumTrack[target_track] = drumTrack[source_track];
+	  octave[target_track] = octave[source_track];
+	  channel[target_track] = channel[source_track];
+	  midiPort[target_track] = midiPort[source_track];
+	  seqLength[target_track] = seqLength[source_track];
+
+	// copy and clear original sequence data
+	  for (u8 i = 0; i < MAX_SEQ_LENGTH; i++) {
+	    notes[target_track][i] = notes[source_track][i];
+
+	    // clear source track values
+	    notes[source_track][i].value = 0;
+	    notes[source_track][i].velocity = 0;
+	    notes[source_track][i].gate = 0;
+	    notes[source_track][i].offset = 0;
+
+	    // clear source input values
+	    inputNotes[source_track].value = 0;
+	    inputNotes[source_track].velocity = 0;
+	    inputNotes[source_track].offset = 0;
+	  }
+}
+
+
 void copyTrack(u8 source_track, u8 target_track) {
 
 	// copy track settings
@@ -521,6 +553,26 @@ void copyTrack(u8 source_track, u8 target_track) {
 	    notes[target_track][i] = notes[source_track][i];
 	  }
 
+
+}
+
+void deleteTrackData(u8 tr) {
+
+	// copy and clear original sequence data
+	  for (u8 i = 0; i < MAX_SEQ_LENGTH; i++) {
+
+	    // clear track values
+	    notes[tr][i].value = 0;
+	    notes[tr][i].velocity = 0;
+	    notes[tr][i].gate = 0;
+	    notes[tr][i].offset = 0;
+
+	  }
+	// clear input track values
+	  inputNotes[tr].value = 0;
+	  inputNotes[tr].velocity = 0;
+	  inputNotes[tr].gate = 0;
+	  inputNotes[tr].offset = 0;
 
 }
 

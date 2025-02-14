@@ -13,6 +13,7 @@ s8 trackSelectStart;
 u8 trackSelectEnd;
 u32 clearTrackArm;
 SETUP_PAGE setupPage;
+SEQ_MODE seqMode;
 u8 track;
 u8 scene;
 u8 project;
@@ -562,6 +563,7 @@ void initSequence() {
   trackSelectEnd = 0;
   clearTrackArm = 0;
   setupPage = MUTE;
+  seqMode = NOTES;
   track = 0;
   scene = 0;
   project = 255;

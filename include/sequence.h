@@ -38,6 +38,8 @@ typedef enum { STOPPED, STARTING, PLAYING, STOPPING } CLOCK_STATE;
 
 typedef enum {SAVE, EDIT, SEQ, MUTE, CLEAR, REPEAT } SETUP_PAGE;
 
+typedef enum {NOTES,VELO,GATE,OFFSET,PROPA,RANDOM} SEQ_MODE;
+
 static const u8 AVAILABLE_STEP_SIZES[8][7] = {//10% 25% 33% 50% 66% 75% 100%
                                                { 1,  1,  1,  2,  2,  2,  3},
                                                { 1,  1,  1,  2,  3,  3,  4},
@@ -61,6 +63,7 @@ extern s8 trackSelectStart;
 extern u8 trackSelectEnd;
 extern u32 clearTrackArm;
 extern SETUP_PAGE setupPage;
+extern SEQ_MODE seqMode;
 extern u8 track;
 
 //MK: added scene for mutes

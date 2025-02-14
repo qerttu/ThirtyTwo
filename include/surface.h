@@ -103,6 +103,8 @@ static const u8 CHANNEL_COLORS[16][3] = {{63,  0,  0}, {63, 15,  0}, {63, 31,  0
 
 static const u8 SETUP_PAGE_COLORS[4][3] = {{0,  7,  63}, {47, 47,  15}, {15, 0,  31}, {0, 63,  7}};
 
+static const u8 SEQ_MODE_COLORS[6][3] = {{0,  7,  63}, {15, 0,  31}, {47, 47,  15}, {0, 63,  7}, {63, 63,  0}, {31, 63,  0}};
+
 extern u8 SEQ_INDEXES[32];
 
 static const u8 SEQ_INDEXES_RND[32] = {95, 96, 97, 98, 89, 79, 69, 59,
@@ -118,6 +120,10 @@ static const u8 SEQ_INDEXES_SQR[32] = {81, 82, 83, 84, 85, 86, 87, 88,
 static const u8 SCENE_INDEXES[8] = {45,46,47,48,35,36,37,38};
 
 static const u8 PC_SLOT_INDEXES[3] = {41,42,43};
+
+static const u8 SEQ_MODE_INDEXES[6] = {89,79,69,59,49,39};
+
+static const u8 PARAM_INDEXES[16] = {31,32,33,34,35,36,37,38,41,42,43,44,45,46,47,48};
 
 
 static const u8 KEYS_INDEXES[12] = {11, 22, 12, 23, 13, 14, 25, 15, 26, 16, 27, 17};
@@ -160,6 +166,8 @@ s8 indexToNote(u8 index);
 
 s8 indexToDrumNote(u8 index, u8 machine);
 
+u8 indexToVelocity(u8 element);
+
 //////// DRAW ////////
 
 u8 velocityFade(u8 led, u8 velocity);
@@ -171,6 +179,13 @@ void clearRoundedPads();
 void drawNotePads();
 
 void drawSetupMode();
+
+void drawDrumPads(u8 smode);
+
+void drawScenePads();
+
+void drawNoteVelocity(u8 vel);
+
 
 void drawSeqDepSetupPage();
 
@@ -196,6 +211,8 @@ void onSetupGridTouch(u8 index, u8 value);
 void onAnyTouch(u8 type, u8 index, u8 value);
 
 void onAftertouch(u8 index, u8 value);
+
+void onScenePadTouch(u8 index, u8 value);
 
 void updatePressTimes();
 
