@@ -1674,15 +1674,26 @@ void onSetupGridTouch(u8 index, u8 value) {
 				 if (value) {
 				  for (u8 i = 0; i < MAX_SEQ_LENGTH; i++) {
 					if (stepPress & (1 << i)) {
-						if (indexToVelocity(index)>0) {
-							inputNotes[track].velocity = indexToVelocity(index);
-							notes[track][i].velocity  = indexToVelocity(index);
+						if (indexToVelocity(index)>=0) {
+							inputNotes[track].velocity = indexToVelocity(index)+1;
+							notes[track][i].velocity  = indexToVelocity(index)+1;
 							drawNoteVelocity(notes[track][i].velocity);
 				 }
 				}
 			   }
 			  }
 			 }
+			 if (seqPlay) {
+				 if (value) {
+						if (indexToVelocity(index)>0) {
+							if (notes[track][seqPlayHeads[track]].velocity>0) {
+								notes[track][seqPlayHeads[track]].velocity  = indexToVelocity(index)+1;
+								drawNoteVelocity(notes[track][seqPlayHeads[track]].velocity);
+							}
+						}
+				 }
+			 }
+
 
 		  break;
 		 case GATE:

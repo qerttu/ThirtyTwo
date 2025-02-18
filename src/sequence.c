@@ -463,6 +463,9 @@ void onMidiReceive(u8 port, u8 status, u8 d1, u8 d2) {
             }
             updateLed(prevPlayHead);
             updatePlayHeadLed(newPlayHead);
+            if(setupPage == SEQ && seqMode == VELO) {
+            	drawNoteVelocity(note.velocity);
+            }
           }
           if (seqPlayHeads[i] == 0) {
             if (newStepSize[i] >= 0) {
