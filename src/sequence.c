@@ -61,6 +61,10 @@ u8 scene_pc[SCENE_COUNT+SCENE_COUNT]; // for two set of PCs
 u8 scene_type[SCENE_COUNT]; // push=0, momentary=1
 u8 pc_set; // pc screens
 
+u8 resetPlayheadTrack; // 0 -> TRACK_COUNT-1; TRACK_COUNT = false
+u8 resetPlayHead; // 0 = false; 1 = true;
+u8 resetTrackNextPlayHead;
+
 
 u8 trackContainsNotes(u8 i) {
   for (u8 j = 0; j < MAX_SEQ_LENGTH; j++) {
@@ -400,11 +404,27 @@ void onMidiReceive(u8 port, u8 status, u8 d1, u8 d2) {
     //clockEvent = 1;
   } else if (status == MIDITIMINGCLOCK) {
     if (seqPlay) {
+
+	// set RESET_TRACK value
+      resetTrackNextPlayHead = (seqPlayHeads[resetPlayheadTrack] + 1) % seqLength[resetPlayheadTrack];
+
+      if ((resetPlayHead < SCENE_COUNT) && (resetTrackNextPlayHead==0))
+      {
+    	// set scene
+      	scene = resetPlayHead;
+		// send request tempo sysx
+		requestSceneTempo(sysexMidiPort, scene);
+		// send PC messages
+		sendScenePCMessages();
+      }
+
+
       for (u8 i = 0; i < TRACK_COUNT; i++) {
         u8 repeat = (!trackRepeat || (trackRepeat & (1 << i))) && stepRepeat;
         u8 prevSeqPlayHead = seqPlayHeads[i];
         u8 prevPlayHead = !repeat || repeatPlayHeads[i] < 0 ? prevSeqPlayHead : repeatPlayHeads[i];
         u8 prevGate = notes[i][prevPlayHead].gate;
+
         //u8 prevOffset = notes[i][prevPlayHead].offset;
 
         // play note if offset is reached
@@ -420,15 +440,23 @@ void onMidiReceive(u8 port, u8 status, u8 d1, u8 d2) {
 
 
 
-
+        // if we are in the beginning of a step
         if (seqDiv[i] == 0) {
+
 
           // reset only based on active track
           if (i==track) {
         	  offsetTimer = 0;
           }
 
+          // we increase the playhead of a track
           seqPlayHeads[i] = (seqPlayHeads[i] + 1) % seqLength[i];
+
+		  if ((resetPlayHead < SCENE_COUNT) && (resetTrackNextPlayHead==0)) {
+			// reset all playheads
+			  seqPlayHeads[i] = 0;
+		  }
+
           u8 newPlayHead;
           if (repeat) {
             if (repeatPlayHeads[i] < 0) {
@@ -441,8 +469,9 @@ void onMidiReceive(u8 port, u8 status, u8 d1, u8 d2) {
             newPlayHead = seqPlayHeads[i];
           }
 
-
+          // we create a note from the new playhead position
           MIDI_NOTE note = notes[i][newPlayHead];
+
           if (!(trackMute[scene] & (1 << i))) {
             if (note.velocity && (prevGate != GATE_TIE || note.value != currentNotes[i].value)) {
             	//if (note.offset==GATE_TIE || (!note.offset)) {
@@ -457,6 +486,7 @@ void onMidiReceive(u8 port, u8 status, u8 d1, u8 d2) {
             }
             currentNotes[i] = note;
           }
+
           if (i == track) {
             if (repeat) {
               updateLed(prevSeqPlayHead);
@@ -467,15 +497,32 @@ void onMidiReceive(u8 port, u8 status, u8 d1, u8 d2) {
             	drawNoteVelocity(note.velocity);
             }
           }
+
+          // if we are in the beginning of a track sequence
           if (seqPlayHeads[i] == 0) {
-            if (newStepSize[i] >= 0) {
+
+           if (newStepSize[i] >= 0) {
               stepSize[i] = newStepSize[i];
               newStepSize[i] = -1;
               refreshGrid();
             }
+
+           // reset resetPlayhead flag and draw pads
+           if (i == (TRACK_COUNT-1)) {
+        	if (resetPlayHead < SCENE_COUNT) {
+        		// reset flag
+        		resetPlayHead = SCENE_COUNT;
+        		// draw pads and notes
+        		drawSetupMode();
+           		drawSeqSteps();
+        		}
+           }
           }
         }
+
+        // increase seq div size by one
         seqDiv[i] = (seqDiv[i] + 1) % AVAILABLE_STEP_SIZES[stepSize[i]][GATE_FULL];
+
       }
       //clockEvent = 1;
     }
@@ -628,6 +675,8 @@ void initSequence() {
 
   //set default scene
   scene = 0;
+  resetPlayheadTrack = 15; // 0 -> TRACK_COUNT-1; TRACK_COUNT = false
+  resetPlayHead = 0; // 0 -> SCENE_COUNT -1; SCENE_COUNT = false
 
   // init notesbuffer
   for (u8 i = 0; i < TRACK_COUNT; i++) {

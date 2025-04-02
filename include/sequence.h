@@ -121,6 +121,8 @@ extern u8 current_pc2; // current program, set 2
 extern u8 scene_pc[SCENE_COUNT+SCENE_COUNT]; // program change message for scenes
 
 extern u8 pc_set; // pc screens
+extern u8 resetPlayheadTrack;
+extern u8 resetPlayHead;
 
 
 

@@ -198,6 +198,7 @@ void updatePlayHeadLed(u8 index);
 void drawSeqSteps();
 
 
+
 //////// TOUCH ////////
 
 void onSeqTouch(u8 index, u8 value);
@@ -216,6 +217,10 @@ void onScenePadTouch(u8 index, u8 value);
 
 void updatePressTimes();
 
+// DATA SEND
+
 void sendAllSysexData();
+
+void sendScenePCMessages();
 
 #endif
