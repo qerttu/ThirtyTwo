@@ -408,13 +408,13 @@ void onMidiReceive(u8 port, u8 status, u8 d1, u8 d2) {
 	// set RESET_TRACK value
       resetTrackNextPlayHead = (seqPlayHeads[resetPlayheadTrack] + 1) % seqLength[resetPlayheadTrack];
 
-      if ((resetPlayHead < SCENE_COUNT) && (resetTrackNextPlayHead==0))
+      if ((resetPlayHead < SCENE_COUNT) && (resetTrackNextPlayHead==0) && (seqDiv[resetPlayheadTrack]==0))
       {
     	// set scene
       	scene = resetPlayHead;
 		// send request tempo sysx
 		requestSceneTempo(sysexMidiPort, scene);
-		// send PC messages
+		 //send PC messages
 		sendScenePCMessages();
       }
 

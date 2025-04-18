@@ -60,7 +60,7 @@ u8 indexToVelocity(u8 element) {
 s8 noteToDrumIndex(u8 note, u8 machine) {
 	if (drumTrack[track]) {
 
-		s8 indx = -1;
+		u8 indx = -1;
 		s8 relIndex = 0;
 
 		switch (machine) {
@@ -73,17 +73,17 @@ s8 noteToDrumIndex(u8 note, u8 machine) {
 		break;
 
 		case 2: // MPC
-			relIndex = indexOf(note, MPC_NOTES, 16);
+			relIndex = indexOf(note, MPC2_NOTES, 16);
 			if (relIndex>=0){
-				indx = MPC_INDEXES[relIndex];
+				indx = MPC2_INDEXES[relIndex];
 			}
 		break;
 
 		case 0: // beats
 		default:
-			relIndex = indexOf(note, MPC2_NOTES, 16);
+			relIndex = indexOf(note, VOLCA_BEATS_NOTES, 7);
 			if (relIndex>=0){
-				indx = MPC2_INDEXES[relIndex];
+				indx = VOLCA_BEATS_INDEXES[relIndex];
 			}
 			break;
 		}
@@ -237,25 +237,6 @@ void drawDrumPads(u8 smode) {
 		 }
 		}
 	}
-
-	   if (stepPress) {
-			if (drumTrack[track]) {
-			  for (u8 i = 0; i < MAX_SEQ_LENGTH; i++) {
-			    if (stepPress & (1 << i)) {
-			      MIDI_NOTE note = notes[track][i];
-			      if (note.velocity) {
-			        s8 index = noteToDrumIndex(note.value,drumMachine[track]);
-			    	if (index >= 0) {
-			          hal_plot_led(TYPEPAD, index,
-			                       velocityFade(CHANNEL_COLORS[channel[track]][0], note.velocity),
-			                       velocityFade(CHANNEL_COLORS[channel[track]][1], note.velocity),
-			                       velocityFade(CHANNEL_COLORS[channel[track]][2], note.velocity));
-			        }
-			      }
-			    }
-			  }
-			}
-	   }
 }
 
 void drawScenePads() {
@@ -655,7 +636,20 @@ void drawSetupMode() {
     		 // draw drum pads
 			 drawDrumPads(SEQ);
 
-
+    		  for (u8 i = 0; i < MAX_SEQ_LENGTH; i++) {
+    		    if (stepPress & (1 << i)) {
+    		      MIDI_NOTE note = notes[track][i];
+    		      if (note.velocity) {
+    		        s8 index = noteToDrumIndex(note.value,drumMachine[track]);
+    		    	if (index >= 0) {
+    		          hal_plot_led(TYPEPAD, index,
+    		                       velocityFade(CHANNEL_COLORS[channel[track]][0], note.velocity),
+    		                       velocityFade(CHANNEL_COLORS[channel[track]][1], note.velocity),
+    		                       velocityFade(CHANNEL_COLORS[channel[track]][2], note.velocity));
+    		        }
+    		      }
+    		    }
+    		  }
     		}
     	  break;
       case VELO:
@@ -1165,12 +1159,14 @@ void onScenePadTouch(u8 index, u8 value) {
 				#endif
 			  }
 			}
-			// send PC messages
+
 			if (!seqPlay) {
-				// send PC messages
-				sendScenePCMessages();
+
 				// send request tempo sysx
 				requestSceneTempo(sysexMidiPort, scene);
+
+				// send PC messages
+				sendScenePCMessages();
 			}
 
 		 }
@@ -1582,7 +1578,6 @@ void onSetupGridTouch(u8 index, u8 value) {
 		 switch (seqMode) {
 		 case NOTES:
 
-
 				//mute track select pressed
 				if (value && (copyTrackSelect>0)) {
 
@@ -1673,7 +1668,6 @@ void onSetupGridTouch(u8 index, u8 value) {
 						  }
 						  drawSeqSteps();
 						  drawSetupMode();
-						  drawDrumPads(SEQ);
 						}
 					  }
 					}
@@ -1689,7 +1683,6 @@ void onSetupGridTouch(u8 index, u8 value) {
 
 		  break;
 		 case VELO:
-
 
 			 if (stepPress) {
 				 if (value) {
@@ -1714,7 +1707,6 @@ void onSetupGridTouch(u8 index, u8 value) {
 						}
 				 }
 			 }
-
 
 
 		  break;
@@ -1776,6 +1768,7 @@ void onSetupGridTouch(u8 index, u8 value) {
 		}
 
 		drawSeqSteps();
+
 
 	  break;
 
